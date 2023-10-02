@@ -29,7 +29,7 @@ In Stream0, for 8-bit images:
 * StripePitch: 1
 * BlockHeight: 8
 * StripeOffset: 0
-* StripeArrangement: Geometry_1X_2YM <2 taps arragned middle-up and middle-down>
+* StripeArrangement: Geometry_1X_2YM <2 taps arranged middle-up and middle-down>
 
 # Contact
 Alistair Curd - a.curd@leeds.ac.uk
