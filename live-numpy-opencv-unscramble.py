@@ -57,5 +57,12 @@ else:
     grabber.stream.set('BlockHeight', 8)
     # StripeOffset = 0 should be default and fine
 
+    # Set up two banks - although one bank gives full resolution!
+    grabber.remote.set('Banks', 'Banks_AB') # 2 banks
+    # And correct payload size for buffer
+    payload_size = grabber.get_payload_size()
+    user_buffer = bytearray(payload_size)
+    grabber.announce_and_queue(UserMemory(user_buffer))
+
     # Acquire images
     run(grabber)
