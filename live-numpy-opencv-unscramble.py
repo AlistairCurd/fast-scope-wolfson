@@ -49,4 +49,13 @@ pixelFormat = grabber.get_pixel_format()
 if pixelFormat != 'Mono8':
     print("Unsupported {} pixel format. This sample works with Mono8 pixel format only.".format(pixelFormat))
 else:
+    # Set up stream to unscramble the middle-outwards reading sequence
+    grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+    grabber.stream.set('LineWidth', 1280) # LinePitch = 0 should be default and fine
+    grabber.stream.set('StripeHeight', 1)
+    grabber.stream.set('StripePitch', 1)
+    grabber.stream.set('BlockHeight', 8)
+    # StripeOffset = 0 should be default and fine
+
+    # Acquire images
     run(grabber)
