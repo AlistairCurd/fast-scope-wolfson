@@ -11,6 +11,9 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * Install opencv, pillow
 * Test with the sample eGrabber scripts from Euresys.
 
+## Code
+*live-numpy-opencv-unscramble.py* A script that acquires and displays unscrambled images from the Phantom S710 chip-reading pattern (two banks in use).
+
 ## Contact
 Alistair Curd - a.curd@leeds.ac.uk
 
