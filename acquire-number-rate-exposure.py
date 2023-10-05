@@ -2,10 +2,11 @@
 
 from egrabber import *
 from pathlib import Path
+import sys
 import time
 
 
-def set_output_dir(output_parent_dir='.',
+def set_output_path(output_parent_dir='C://Temp',
                    output_dir='phantom-images'
                    ):
     """Set and create the output directory for images.
@@ -16,10 +17,18 @@ def set_output_dir(output_parent_dir='.',
         output_dir (string):
             Name of the output directory.
     """
-    output_dir = Path(output_parent_dir).joinpath(output_dir)
-    output_dir.mkdir()
-    
-    return output_dir
+    output_path = Path(output_parent_dir).joinpath(output_dir)    
+
+    try:
+        output_path.mkdir()
+    except FileExistsError:
+        print('\n'
+              'Please choose an output directory that does not already exist '
+              'and start again.'
+              )
+        sys.exit()
+
+    return output_path
 
 def get_acq_settings(n_frames=5, fps=1000, exp_time=1000):
     """Get the acquisition settings.
@@ -57,7 +66,7 @@ def unscramble_phantom_S710_output(grabber,
     if pixelformat != 'Mono8':
         print('Unsupported {} pixel format.'
               'This sample works with Mono8 pixel format only.'
-              .format(pixelFormat)
+              .format(pixelformat)
               )
     else:
         # Set up the use o two banks - although one bank gives full resolution!
@@ -78,7 +87,7 @@ def unscramble_phantom_S710_output(grabber,
 
 def main():
     # Set saving location
-    output_dir = set_output_dir()
+    output_path = set_output_path()
 
     # Get acquisition settings
     n_frames, fps, exp_time = get_acq_settings()
@@ -90,13 +99,14 @@ def main():
     # Set up grabber stream for unscrambled images
     unscramble_phantom_S710_output(grabber)
 
-    # Acquire
+    # Make a buffer ready for every frame and start
     grabber.realloc_buffers(n_frames)
     grabber.start(n_frames)
+
+    # Acquire image into buffer and save for every frame
     for frame in range(n_frames):
         buffer = Buffer(grabber)
-        # THIS DOES NOT USE output_dir YET
-        buffer.save_to_disk('.//phantom-images//{}.jpeg'.format(frame))
+        buffer.save_to_disk(str(output_path.joinpath('{}.jpeg'.format(frame))))
         buffer.push()
 
 
