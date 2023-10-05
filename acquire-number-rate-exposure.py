@@ -4,8 +4,9 @@ from egrabber import EGenTL, EGrabber, Buffer
 # from egrabber import *
 from pathlib import Path
 # import numpy as np
+import argparse
 import sys
-# import time
+import time
 
 
 def set_output_path(output_parent_dir='C://Temp',
@@ -39,17 +40,16 @@ def set_output_path(output_parent_dir='C://Temp',
     return output_path
 
 
-def get_acq_settings(n_frames=100, fps=1000, exp_time=None):
-    """Get the acquisition settings.
+def check_and_set_exposure(fps, exp_time):
+    """Check exposure time is compatible with fps,
+    or set exposure time close to the limit for the fps setting.
 
-    This will probably switch to arg_parse soon.
+    Exit with a message if the exposure time is too high for the fps.
 
     Makes sure that exposure time is
-    at least 1-2 us less than the buffer cycling period.
+    at least 0.5 to 1.5 us less than the buffer cycling period.
 
     Args:
-        n_frames (int, default 100):
-            Number of frames to acquire
         fps (float, default 1000):
             Frame rate (frames per second)
         exp_time (int):
@@ -76,7 +76,7 @@ def get_acq_settings(n_frames=100, fps=1000, exp_time=None):
               )
         sys.exit()
 
-    return n_frames, fps, exp_time
+    return exp_time
 
 
 def unscramble_phantom_S710_output(grabber,
@@ -122,14 +122,50 @@ def unscramble_phantom_S710_output(grabber,
         # time.sleep(0.1)
 
 
+def get_cmd_inputs():
+    """Get command prompt inputs for acquisition."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-n', '--numframes',
+                        dest='n_frames',
+                        type=int,
+                        required=True,
+                        help='Required. Number of frames to acquire.'
+                        )
+
+    parser.add_argument('--fps',
+                        dest='fps',
+                        type=float,
+                        required=True,
+                        help='Required. Frame rate (frames per second).'
+                        )
+
+    parser.add_argument('-x', '--exposure',
+                        dest='exp_time',
+                        type=int,
+                        help='Optional. Exposure time (microseconds).'
+                        ' Must be < round(1e6 / fps - 1).'
+                        )
+
+    args = parser.parse_args()
+
+    return args
+
+
 def main():
-    # Get acquisition settings
-    n_frames, fps, exp_time = get_acq_settings(n_frames=10,
-                                               fps=1000
-                                               )
+    # Get user settings
+    user_settings = get_cmd_inputs()
+    n_frames = user_settings.n_frames
+    fps = user_settings.fps
+    exp_time = user_settings.exp_time
+
+    # Check and set exposure time against fps
+    exp_time = check_and_set_exposure(fps, exp_time)
+
+    # Display timings
     print('fps = {:.1f}'.format(fps))
-    print('cycling time = {:.1f}'.format(1e6 / fps))
-    print('exp_time =', exp_time)
+    print('cycling time = {:.1f}'.format(1e6 / fps), 'us')
+    print('exp_time =', exp_time, 'us')
 
     # Create grabber
     gentl = EGenTL()
@@ -140,6 +176,7 @@ def main():
 
     # Configure fps and exposure time
     grabber.remote.set('AcquisitionFrameRate', fps)
+    time.sleep(0.001)  # Allow fps to set first
     grabber.remote.set('ExposureTime', exp_time)
 
     # Make a buffer ready for every frame and start
