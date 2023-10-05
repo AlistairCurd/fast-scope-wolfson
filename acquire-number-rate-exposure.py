@@ -45,10 +45,8 @@ def get_acq_settings(n_frames=100, fps=1000, exp_time=None):
     This will probably switch to arg_parse soon.
 
     Makes sure that exposure time is
-    at least 1us less than the buffer cycling period.
+    at least 1-2 us less than the buffer cycling period.
 
-    
-    
     Args:
         n_frames (int, default 100):
             Number of frames to acquire
