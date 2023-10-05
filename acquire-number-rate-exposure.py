@@ -74,8 +74,6 @@ def unscramble_phantom_S710_output(grabber,
         # Add a pause to allow grabber settings to take effect
         # Try without, since running the other settings will take some time anyway.
         # time.sleep(0.1)
-    
-    return grabber
 
 
 def main():
@@ -90,7 +88,7 @@ def main():
     grabber = EGrabber(gentl)
 
     # Set up grabber stream for unscrambled images
-    grabber = unscramble_phantom_S710_output(grabber)
+    unscramble_phantom_S710_output(grabber)
 
     # Acquire
     grabber.realloc_buffers(n_frames)
