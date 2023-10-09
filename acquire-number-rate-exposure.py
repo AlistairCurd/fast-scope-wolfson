@@ -152,8 +152,23 @@ def unscramble_phantom_S710_output(grabber,
         # time.sleep(0.1)
 
 
-def get_cmd_inputs():
-    """Get command prompt inputs for acquisition."""
+def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
+                                       1024, 1152, 1280
+                                       ],
+                   max_height=400
+                   ):
+    """Get command prompt inputs for acquisition.
+
+    Args:
+        allowed_roi_widths (list):
+            List of ROI widths that do not produce an error.
+        max_height (int):
+            Maximum ROI height allowed.
+
+    Returns:
+        args (argparse.Namespace object):
+            Parsed arguments for downstream use.
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-n', '--numframes',
@@ -182,6 +197,8 @@ def get_cmd_inputs():
                         type=int,
                         default=1280,
                         help='Optional. Width of ROI in pixels.'
+                        ' Must be in [128, 256, 384, 512, 640, 768, 896,'
+                        ' 1024, 1152, 1280].'
                         )
 
     # Change default if different number of output banks in use?
@@ -195,8 +212,19 @@ def get_cmd_inputs():
 
     args = parser.parse_args()
 
-    if args.roi_height > 400:
+    # Check whether height and width will be allowed
+    stop = False
+
+    if args.roi_height > max_height:
         print('\nPlease choose an ROI height <= 400 pixels.')
+        stop = True
+
+    if args.roi_width not in allowed_roi_widths:
+        print('\nPlease choose one of these options for ROI width:'
+              '\n128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280')
+        stop = True
+
+    if stop is True:
         sys.exit()
 
     return args
