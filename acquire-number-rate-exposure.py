@@ -28,14 +28,21 @@ def set_output_path(output_parent_dir='C://Temp',
     """
     output_path = Path(output_parent_dir).joinpath(output_dir)
 
-    try:
-        output_path.mkdir()
-    except FileExistsError:
-        print('\n'
-              '*** Please choose an output directory '
-              'that does not already exist and start again.'
-              )
-        sys.exit()
+    # Modify the folder name if it exists, for now
+    while output_path.exists():
+        output_dir = output_dir + '_'
+        output_path = Path(output_parent_dir).joinpath(output_dir)
+
+    output_path.mkdir()
+
+#    try:
+#        output_path.mkdir()
+#    except FileExistsError:
+#        print('\n'
+#              '*** Please choose an output directory '
+#              'that does not already exist and start again.'
+#              )
+#        sys.exit()
 
     return output_path
 
@@ -77,6 +84,24 @@ def check_and_set_exposure(fps, exp_time):
         sys.exit()
 
     return exp_time
+
+
+def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
+    """Set the region within the chip to be acquired. Not sure yet
+    whether offsets can be set.
+
+    Args:
+        grabber (EGrabber object):
+            Frame grabber object to set up for acquisition
+        x_offset, y_offset (int):
+            Pixel location of left and top edges of ROI
+        width, height (int):
+            Width and height of ROI in pixels
+    """
+    if width is not None:
+        grabber.remote.set('Width', width)
+    if height is not None:
+        grabber.reomte.set('Height', height)
 
 
 def unscramble_phantom_S710_output(grabber,
@@ -173,6 +198,9 @@ def main():
 
     # Set up grabber stream for unscrambled images
     unscramble_phantom_S710_output(grabber)
+
+    # Set up ROI
+    set_roi(grabber)
 
     # Configure fps and exposure time
     grabber.remote.set('AcquisitionFrameRate', fps)
