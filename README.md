@@ -12,12 +12,12 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * Test with the sample eGrabber scripts from Euresys.
 
 ## Code
-* *live-numpy-opencv-unscramble.py*: A script to acquire and display unscrambled images from the Phantom S710 chip-reading pattern (two banks in use).
-* *acquire-number-rate-exposure*: A script to acquire and save unscrambled images from the Phantom S710 with user-chosen number of frames, frame rate and exposure time over an ROI.
-* *find_allowed_roi_widths.py*: A script to discover the allowed widths of the ROI for aqcuisition.
+* *live-numpy-opencv-unscramble.py* : A script to acquire and display unscrambled images from the Phantom S710 chip-reading pattern (two banks in use).
+* *acquire-number-rate-exposure* : A script to acquire and save unscrambled images from the Phantom S710 with user-chosen number of frames, frame rate and exposure time over an ROI.
+* *find_allowed_roi_widths.py* : A script to discover the allowed widths of the ROI for aqcuisition.
 
 ## Files included
-* *allowed_roi_widths.txt*: The allowed widths of the acquisition region for the Phantom S710.
+* *allowed_roi_widths.txt* : The allowed widths of the acquisition region for the Phantom S710.
 
 ## Contact
 Alistair Curd - a.curd@leeds.ac.uk
