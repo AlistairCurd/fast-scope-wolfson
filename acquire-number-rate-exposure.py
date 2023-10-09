@@ -101,10 +101,11 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
     if width is not None:
         grabber.remote.set('Width', width)
     if height is not None:
-        grabber.reomte.set('Height', height)
+        grabber.remote.set('Height', height)
 
 
 def unscramble_phantom_S710_output(grabber,
+                                   roi_width,
                                    pixelformat='Mono8',
                                    banks='Banks_AB'
                                    ):
@@ -133,8 +134,12 @@ def unscramble_phantom_S710_output(grabber,
 
         # Set up stream to unscramble the middle-outwards reading sequence
         grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
-        grabber.stream.set('LineWidth', 1280)
+
+        # LineWidth might change with bit-depth
+        grabber.stream.set('LineWidth', roi_width)
+
         # LinePitch = 0 should be default and fine
+
         grabber.stream.set('StripeHeight', 1)
         grabber.stream.set('StripePitch', 1)
         grabber.stream.set('BlockHeight', 8)
@@ -172,6 +177,21 @@ def get_cmd_inputs():
                         ' Must be < round(1e6 / fps - 1).'
                         )
 
+    parser.add_argument('-W', '--width',
+                        dest='roi_width',
+                        type=int,
+                        default=1280,
+                        help='Optional. Width of ROI in pixels.'
+                        )
+
+    # Change default if different number of output banks in use?
+    parser.add_argument('-H', '--height',
+                        dest='roi_height',
+                        type=int,
+                        default=400,
+                        help='Optional. Width of ROI in pixels.'
+                        )
+
     args = parser.parse_args()
 
     return args
@@ -183,8 +203,10 @@ def main():
     n_frames = user_settings.n_frames
     fps = user_settings.fps
     exp_time = user_settings.exp_time
+    roi_width = user_settings.roi_width
+    roi_height = user_settings.roi_height
 
-    # Check and set exposure time against fps
+    # Check exposure time against fps, adjust if necessary
     exp_time = check_and_set_exposure(fps, exp_time)
 
     # Display timings
@@ -200,11 +222,11 @@ def main():
     gentl = EGenTL()
     grabber = EGrabber(gentl)
 
-    # Set up grabber stream for unscrambled images
-    unscramble_phantom_S710_output(grabber)
-
     # Set up ROI
-    set_roi(grabber)
+    set_roi(grabber, width=roi_width, height=roi_height)
+
+    # Set up grabber stream for unscrambled images
+    unscramble_phantom_S710_output(grabber, roi_width)
 
     # Configure fps and exposure time
     grabber.remote.set('AcquisitionFrameRate', fps)
