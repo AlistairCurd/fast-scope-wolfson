@@ -174,7 +174,7 @@ def get_cmd_inputs():
                         dest='exp_time',
                         type=int,
                         help='Optional. Exposure time (microseconds).'
-                        ' Must be < round(1e6 / fps - 1).'
+                        ' Must be <= round(1e6 / fps - 1).'
                         )
 
     parser.add_argument('-W', '--width',
@@ -189,10 +189,15 @@ def get_cmd_inputs():
                         dest='roi_height',
                         type=int,
                         default=400,
-                        help='Optional. Width of ROI in pixels.'
+                        help='Optional. Height of ROI in pixels.'
+                        ' Must be <= 400.'
                         )
 
     args = parser.parse_args()
+
+    if args.roi_height > 400:
+        print('\nPlease choose an ROI height <= 400 pixels.')
+        sys.exit()
 
     return args
 
