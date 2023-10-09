@@ -1,6 +1,126 @@
 """Functions for setting grabber properties
 with EGrabber Coaxlink interface"""
 
+import argparse
+import sys
+
+
+def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
+                                       1024, 1152, 1280
+                                       ],
+                   max_height=400
+                   ):
+    """Get command prompt inputs for acquisition.
+
+    Args:
+        allowed_roi_widths (list):
+            List of ROI widths that do not produce an error.
+        max_height (int):
+            Maximum ROI height allowed.
+
+    Returns:
+        args (argparse.Namespace object):
+            Parsed arguments for downstream use.
+    """
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-n', '--numframes',
+                        dest='n_frames',
+                        type=int,
+                        default=10,
+                        help='Required. Number of frames to acquire.'
+                        )
+
+    parser.add_argument('--fps',
+                        dest='fps',
+                        type=float,
+                        default=1000,
+                        help='Required. Frame rate (frames per second).'
+                        )
+
+    parser.add_argument('-x', '--exposure',
+                        dest='exp_time',
+                        type=int,
+                        help='Optional. Exposure time (microseconds).'
+                        ' Must be <= round(1e6 / fps - 1).'
+                        )
+
+    parser.add_argument('-W', '--width',
+                        dest='roi_width',
+                        type=int,
+                        default=1280,
+                        help='Optional. Width of ROI in pixels.'
+                        ' Must be in [128, 256, 384, 512, 640, 768, 896,'
+                        ' 1024, 1152, 1280].'
+                        )
+
+    # Change default if different number of output banks in use?
+    parser.add_argument('-H', '--height',
+                        dest='roi_height',
+                        type=int,
+                        default=400,
+                        help='Optional. Height of ROI in pixels.'
+                        ' Must be <= 400.'
+                        )
+
+    args = parser.parse_args()
+
+    # Check whether height and width will be allowed
+    stop = False
+
+    if args.roi_height > max_height:
+        print('\nPlease choose an ROI height <= 400 pixels.')
+        stop = True
+
+    if args.roi_width not in allowed_roi_widths:
+        print('\nPlease choose one of these options for ROI width:'
+              '\n128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280')
+        stop = True
+
+    if stop is True:
+        sys.exit()
+
+    return args
+
+
+def check_and_set_exposure(fps, exp_time):
+    """Check exposure time is compatible with fps,
+    or set exposure time close to the limit for the fps setting.
+
+    Exit with a message if the exposure time is too high for the fps.
+
+    Makes sure that exposure time is
+    at least 0.5 to 1.5 us less than the buffer cycling period.
+
+    Args:
+        fps (float, default 1000):
+            Frame rate (frames per second)
+        exp_time (int):
+            Exposure time (microseconds)
+
+    Returns:
+        n_frames (int):
+            Number of frames to acquire
+        fps (float):
+            Frame rate (frames per second)
+        exp_time (int):
+            Exposure time (microseconds)
+    """
+    # Set exposure time if not present
+    if exp_time is None:
+        exp_time = round(1e6 / fps - 1)  # For microseconds
+
+    # Exit gracefully if exposure time is >= 1 / frame rate
+    elif exp_time >= round(1e6 / fps - 1):
+        print('\n'
+              '*** Please choose an \n'
+              'exposure time (us) <= round(1 / frames per second - 1) \n'
+              'and start again.'
+              )
+        sys.exit()
+
+    return exp_time
+
 
 def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
     """Set the region within the chip to be acquired. Not sure yet
