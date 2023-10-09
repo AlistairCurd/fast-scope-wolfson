@@ -188,9 +188,13 @@ def main():
     exp_time = check_and_set_exposure(fps, exp_time)
 
     # Display timings
-    print('fps = {:.1f}'.format(fps))
+    print('\nfps = {:.1f}'.format(fps))
     print('cycling time = {:.1f}'.format(1e6 / fps), 'us')
     print('exp_time =', exp_time, 'us')
+
+    # Set up saving location
+    output_path = set_output_path()
+    print('\nOutput will be saved in {}'.format(output_path))
 
     # Create grabber
     gentl = EGenTL()
@@ -210,9 +214,6 @@ def main():
     # Make a buffer ready for every frame and start
     grabber.realloc_buffers(n_frames)
     grabber.start(n_frames)
-
-    # Set up saving location
-    output_path = set_output_path()
 
     # timestamps = []
 
