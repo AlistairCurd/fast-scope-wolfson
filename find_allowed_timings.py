@@ -18,16 +18,14 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
                          fps_max_test + fps_step,
                          fps_step
                          ):
-        print('FPS : {:f}'.format(fps))
+        # print('FPS : {:f}'.format(fps))
 
         # From the lowest fps setting upwards,
         # if the fps setting can be applied...
         try:
             grabber.remote.set('AcquisitionFrameRate', float(fps))
-            print('FPS : {:f}'.format(fps))
         except errors.GenTLException:
             continue
-
         # ... record it as the minimum allowed and stop
         fps_min_allowed = fps
         break
@@ -39,19 +37,23 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
                              fps_max_test + fps_step,
                              fps_step
                              ):
-            # From the minimum fps setting upwards,
+            # print('FPS : {:f}'.format(fps))
+            # From one step after the minimum allowed fps setting upwards,
             # if the fps setting cannot be applied...
             try:
-                grabber.remote.set('AquisitionFrameRate', float(fps))
+                grabber.remote.set('AcquisitionFrameRate', float(fps))
             except errors.GenTLException:
                 # ... record the previous attempt
                 # as the maximum allowed and stop
                 fps_max_allowed = fps - fps_step
                 break
-        if fps == fps_max_test:
-            fps_max_allowed = fps_max_test
 
-    # Print results if extrema found
+    # If highest fps tested was allowable, set this as the
+    # maximum allowable setting
+    if fps == fps_max_test:
+        fps_max_allowed = fps_max_test
+
+    # PRINT RESULTS if extrema found
     if fps_min_allowed is not None:
         print('\nMinimum allowable FPS setting found : {}.'
               .format(fps_min_allowed)
@@ -61,7 +63,7 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
               .format(fps_max_allowed)
               )
 
-    # Output warnings if min and max allowed were outside
+    # OUTPUT WARNINGS if min and max allowed were outside
     # the min and max of the test range.
     if fps_min_allowed is None:
         print('\nWarning: No allowable fps setting found '
@@ -107,21 +109,8 @@ def main():
     # Set up grabber stream for unscrambled images
     set_grabber_properties.unscramble_phantom_S710_output(grabber, roi_width)
 
-    print('Unscrambled.')
-
-    # Set test fps
-    print(dir(grabber.remote.set))
-    grabber.remote.set('AcquisitionFrameRate', 900)
-
-    print('Set to 900 fps.')
-
-    for fps in np.arange(950, 960 + 1, 1):
-        grabber.remote.set('AcquisitionFrameRate', float(fps))
-        print('Set to {} fps.'.format(fps))
-
-    print('Still worked?')
-
-    fps_test(grabber, fps_min_test=950, fps_max_test=956, fps_step=1)
+    # Test allowed frame rates
+    fps_test(grabber, fps_min_test=10, fps_max_test=100000, fps_step=1)
 
 
 if __name__ == '__main__':
