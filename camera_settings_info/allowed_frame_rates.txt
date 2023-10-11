@@ -1,0 +1,25 @@
+Phantom S710 frame rates, set with Euresys eGrabber Python bindings
+
+-W is width to acquire. -H is height. Both in pixels.
+
+Testing from 1 to 100000 fps in steps of 1 fps:
+
+-W 1280 -H 400
+Minimum allowable FPS setting found : 24.
+Maximum allowable FPS setting found : 4291.
+~ 233.05 us
+
+-W 1280 -H 128
+Minimum allowable FPS setting found : 24.
+Maximum allowable FPS setting found : 13312.
+~ 75.12 us
+
+-W 1024 -H 128
+Minimum allowable FPS setting found : 24.
+Maximum allowable FPS setting found : 16520.
+~ 60.53 us
+
+-W 128 -H 128
+Minimum allowable FPS setting found : 24.
+Maximum allowable FPS setting found : 86294.
+~ 11.589 us

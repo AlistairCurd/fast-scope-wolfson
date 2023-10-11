@@ -2,7 +2,7 @@
 
 from egrabber import EGenTL, EGrabber, errors
 import numpy as np
-# import time
+import time
 # import sys
 import set_grabber_properties
 
@@ -23,6 +23,8 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
         # From the lowest fps setting upwards,
         # if the fps setting can be applied...
         try:
+            # Allow time to change setting
+            time.sleep(0.002)
             grabber.remote.set('AcquisitionFrameRate', float(fps))
         except errors.GenTLException:
             continue
@@ -41,6 +43,8 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
             # From one step after the minimum allowed fps setting upwards,
             # if the fps setting cannot be applied...
             try:
+                # Allow time to change setting
+                time.sleep(0.002)
                 grabber.remote.set('AcquisitionFrameRate', float(fps))
             except errors.GenTLException:
                 # ... record the previous attempt
@@ -110,7 +114,7 @@ def main():
     set_grabber_properties.unscramble_phantom_S710_output(grabber, roi_width)
 
     # Test allowed frame rates
-    fps_test(grabber, fps_min_test=10, fps_max_test=100000, fps_step=1)
+    fps_test(grabber, fps_min_test=1, fps_max_test=100000, fps_step=1)
 
 
 if __name__ == '__main__':
