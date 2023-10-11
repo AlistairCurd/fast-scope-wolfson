@@ -9,7 +9,8 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * Set up a Python 3 environment (only 3.10 tested).
 * Install the eGrabber Python bindings wheel from Euresys.
 * Install opencv, pillow
-* Test with the sample eGrabber scripts from Euresys.
+* Clone this repository and navigate to it.
+* Test with the sample eGrabber scripts from Euresys (`python <script_name>`).
 
 ## Code
 
