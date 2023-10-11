@@ -58,7 +58,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     parser.add_argument('-H', '--height',
                         dest='roi_height',
                         type=int,
-                        default=400,
+                        default=128,
                         help='Optional. Height of ROI in pixels.'
                         ' Must be <= 400.'
                         )
