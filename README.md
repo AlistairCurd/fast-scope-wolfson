@@ -13,7 +13,7 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * Test with the sample eGrabber Python scripts from Euresys
   * Download the eGrabber sample programs
   * Navigate to the the eGrabber Python sample programs in a command prompt
-  * Run a couple of them: `python <script_name>`.
+  * Run a couple of them: `python <script_name>`
 
 ## Code
 
