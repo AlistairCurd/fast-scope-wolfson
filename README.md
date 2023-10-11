@@ -6,11 +6,14 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * Euresys eGrabber API for Coaxlink cards
 
 ## Getting started
+
 * Set up a Python 3 environment (only 3.10 tested).
 * Install the eGrabber Python bindings wheel from Euresys.
 * Install opencv, pillow
-* Clone this repository and navigate to it.
-* Test with the sample eGrabber scripts from Euresys (`python <script_name>`).
+* Test with the sample eGrabber Python scripts from Euresys
+  * Download the eGrabber sample programs
+  * Navigate to the the eGrabber Python sample programs in a command prompt
+  * Run a couple of them: `python <script_name>`.
 
 ## Code
 
