@@ -87,7 +87,8 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
-                   max_height=400
+                   max_height=400,
+                   allowed_bit_depths=[8, 12]
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -125,6 +126,14 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         ' Must be <= {}.'.format(max_height)
                         )
 
+    parser.add_argument('-b,', '--bit-depth',
+                        dest='bit_depth',
+                        type=int,
+                        default=8,
+                        help='Bit-depth of data per pixel.'
+                        ' One of {}.'.format(allowed_bit_depths)
+                        )
+
     parser.add_argument('--min-fps',
                         dest='fps_min_test',
                         type=float,
@@ -160,6 +169,12 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     if allowable_width_height is False:
         sys.exit()
 
+    # Check bit-depth
+    if args.bit_depth not in allowed_bit_depths:
+        print('\nNope. Bit depth must be one of {}.'
+              .format(allowed_bit_depths))
+        sys.exit()
+
     return args
 
 
@@ -168,15 +183,16 @@ def main():
     Output minimum and maximum allowed frame rates.
     """
     # Get user settings
-    user_settings = get_cmd_inputs()
+    cmd_args = get_cmd_inputs()
 
     # Display settings
     print('')
-    print('Image width: ', user_settings.roi_width)
-    print('Image height: ', user_settings.roi_height)
-    print('Minimum FPS to test: ', user_settings.fps_min_test)
-    print('Maximum FPS to test: ', user_settings.fps_max_test)
-    print('FPS increment for test: ', user_settings.fps_step)
+    print('Image width: ', cmd_args.roi_width)
+    print('Image height: ', cmd_args.roi_height)
+    print('Bit depth of pixel: ', cmd_args.bit_depth)
+    print('Minimum FPS to test: ', cmd_args.fps_min_test)
+    print('Maximum FPS to test: ', cmd_args.fps_max_test)
+    print('FPS increment for test: ', cmd_args.fps_step)
 
     # Create grabber
     gentl = EGenTL()
@@ -184,20 +200,26 @@ def main():
 
     # Set up ROI
     set_grabber_properties.set_roi(grabber,
-                                   width=user_settings.roi_width,
-                                   height=user_settings.roi_height
+                                   width=cmd_args.roi_width,
+                                   height=cmd_args.roi_height
                                    )
+
+    # Set bit-depth
+    if cmd_args.bit_depth == 8:
+        grabber.remote.set('PixelFormat', 'Mono8')
+    if cmd_args.bit_depth == 12:
+        grabber.remote.set('PixelFormat', 'Mono12')
 
     # Set up grabber stream for unscrambled images
     set_grabber_properties.unscramble_phantom_S710_output(
-        grabber, user_settings.roi_width
+        grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
         )
 
     # Test allowed frame rates
     fps_test(grabber,
-             fps_min_test=user_settings.fps_min_test,
-             fps_max_test=user_settings.fps_max_test,
-             fps_step=user_settings.fps_step)
+             fps_min_test=cmd_args.fps_min_test,
+             fps_max_test=cmd_args.fps_max_test,
+             fps_step=cmd_args.fps_step)
 
 
 if __name__ == '__main__':
