@@ -19,6 +19,10 @@ Minimum allowable FPS setting found : 24.
 Maximum allowable FPS setting found : 16520.
 ~ 60.53 us
 
+-W 256 -H 256
+Minimum allowable FPS setting found : 24.
+Maximum allowable FPS setting found : 31423.
+
 -W 128 -H 128
 Minimum allowable FPS setting found : 24.
 Maximum allowable FPS setting found : 86294.
