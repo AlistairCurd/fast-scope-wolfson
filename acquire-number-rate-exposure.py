@@ -91,16 +91,25 @@ def main():
     grabber.realloc_buffers(cmd_args.n_frames)
     grabber.start(cmd_args.n_frames)
 
-    # timestamps = []
+    # Measure speed
+    timestamps = []
 
     # Acquire image into buffer and save for every frame
     for frame in range(cmd_args.n_frames):
         buffer = Buffer(grabber)
-        # timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
-        # timestamp = buffer.get_info(cmd=3, info_datatype=8)
-        # print('timestamp:', timestamp)
+        timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
+        if cmd_args.bit_depth != 8:
+            buffer.convert('Mono8')
         buffer.save_to_disk(str(output_path.joinpath('{}.jpeg'.format(frame))))
         buffer.push()
+
+    if len(timestamps) > 0:
+        print('\nTime at frame 0: {} us'.format(timestamps[0]))
+        print('Time at frame {}: {} us'.format(len(timestamps) - 1,
+                                               timestamps[-1]
+                                               )
+              )
+        print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
 
     # for t in range(len(timestamps)):
         # print(timestamps[t])
