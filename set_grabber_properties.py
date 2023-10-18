@@ -68,24 +68,8 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
 
     args = parser.parse_args()
 
-    # Check whether height and width will be allowed
-#    stop = False
-#
-#    if args.roi_height > max_height:
-#        print('\nNope. Please choose an ROI height <= {} pixels.'
-#              .format(max_height)
-#              )
-#        stop = True
-#
-#    if args.roi_width not in allowed_roi_widths:
-#        print('\nNope. Please choose one of these options for ROI width:\n{}'
-#              .format(allowed_roi_widths)
-#              )
-#        stop = True
-#
-#    if stop is True:
-#        sys.exit()
-
+    # Check ROI width and height.
+    # Print messages and exit if incompatible with camera.
     allowable_width_height = check_input_width_and_height(
         args.roi_width, args.roi_height,
         allowed_roi_widths, max_height
