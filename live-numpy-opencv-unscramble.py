@@ -35,12 +35,13 @@ def loop(grabber):
             img = mono8_to_ndarray(ptr, w, h, size)
 
             count += 1
-            if gui:
-                cv2.imshow("Press any key to exit", img)
-                if cv2.waitKey(1) >= 0:
+            if count % 100 == 0:
+                if gui:
+                    cv2.imshow("Press any key to exit", img)
+                    if cv2.waitKey(1) >= 0:
+                        break
+                elif count == countLimit:
                     break
-            elif count == countLimit:
-                break
 
 
 def run(grabber):
