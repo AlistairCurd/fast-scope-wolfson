@@ -59,11 +59,11 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
 
     # PRINT RESULTS if extrema found
     if fps_min_allowed is not None:
-        print('\nMinimum allowable FPS setting found: {}.'
+        print('\nMinimum allowable FPS setting found: {}'
               .format(fps_min_allowed)
               )
     if fps_max_allowed is not None:
-        print('Maximum allowable FPS setting found: {}.'
+        print('Maximum allowable FPS setting found: {}'
               .format(fps_max_allowed)
               )
 
