@@ -5,6 +5,7 @@ from egrabber import EGenTL, EGrabber, Buffer
 from pathlib import Path
 # import numpy as np
 # import sys
+import math
 import time
 import set_grabber_properties
 
@@ -57,9 +58,10 @@ def main():
     print('Image height: ', cmd_args.roi_height)
     print('Bit depth of pixel: ', cmd_args.bit_depth)
 
-    # Set up saving location
+    # Set up saving location and filename length
     output_path = set_output_path()
     print('\nOutput will be saved in {}'.format(output_path))
+    len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create grabber
     gentl = EGenTL()
@@ -100,7 +102,9 @@ def main():
         timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
         if cmd_args.bit_depth != 8:
             buffer.convert('Mono8')
-        buffer.save_to_disk(str(output_path.joinpath('{}.jpeg'.format(frame))))
+        buffer.save_to_disk(
+            str(output_path.joinpath('{:0{length}d}.tiff'
+                                     .format(frame, length=len_frame_number))))
         buffer.push()
 
     if len(timestamps) > 0:
