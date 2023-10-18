@@ -2,28 +2,78 @@ Phantom S710 frame rates, set with Euresys eGrabber Python bindings
 
 -W is width to acquire. -H is height. Both in pixels.
 
+********* 8-bit pixels **************
+
 Testing from 1 to 100000 fps in steps of 1 fps:
 
 -W 1280 -H 400
-Minimum allowable FPS setting found : 24.
-Maximum allowable FPS setting found : 4291.
-~ 233.05 us
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found : 4291
+~ 233 us
+Buffer timings with writing: 233052 us over 1000 frames
+~ 233 us / frame
 
 -W 1280 -H 128
-Minimum allowable FPS setting found : 24.
-Maximum allowable FPS setting found : 13312.
-~ 75.12 us
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found : 13312
+~ 75 us
+Buffer timings with writing: 75121 us over 1000 frames
+~ 75 us / frame
 
 -W 1024 -H 128
-Minimum allowable FPS setting found : 24.
-Maximum allowable FPS setting found : 16520.
-~ 60.53 us
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found : 16520
+~ 61 us
+Buffer timings with writing: 60532 us over 1000 frames
+~ 61 us / frame
 
 -W 256 -H 256
-Minimum allowable FPS setting found : 24.
-Maximum allowable FPS setting found : 31423.
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found : 31423
+~ 32 us
+Buffer timings with writing: 31840 us over 1000 frames
+~ 32 us / frame
 
 -W 128 -H 128
-Minimum allowable FPS setting found : 24.
-Maximum allowable FPS setting found : 86294.
-~ 11.589 us
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found : 86294
+~ 12 us
+Buffer timings with writing: 11588 us over 1000 frames
+~ 12 us / frame
+
+*********** 12-bit pixels *************
+
+-W 1280 -H 400
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found: 2888
+~ 346 us
+Buffer timings with writing: 346262 us over 1000 frames
+~ 346 us per frame
+
+-W 1280 -H 128
+Minimum allowable FPS setting found : 24
+Maximum allowable FPS setting found: 9105
+~ 110 us
+Buffer timings with writing: 219655 us over 1000 frames
+~ 220 us / frame
+
+-W 1024 -H 128
+Minimum allowable FPS setting found: 24
+Maximum allowable FPS setting found: 11401
+~ 88 us
+Buffer timings with writing: 175418 us over 1000 frames
+~ 175 us / frame
+
+-W 256 -H 256
+Minimum allowable FPS setting found: 24
+Maximum allowable FPS setting found: 22280
+~ 45 us
+Buffer timings with writing: 46613 us over 1000 frames
+~ 47 us per frame
+
+-W 128 -H 128
+Minimum allowable FPS setting found: 24.0
+Maximum allowable FPS setting found: 87179
+~ 11 us
+Buffer timings with writing: 12916 us over 1000 frames
+~ 13 us per frame
