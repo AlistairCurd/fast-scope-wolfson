@@ -60,11 +60,14 @@ def main():
     # Set if not given
     exp_time = set_grabber_properties.check_and_set_exposure(fps, exp_time)
 
-    # Display timings
+    # Display settings
+
     print('\nNumber of frames : {}'.format(n_frames))
     print('Frames per second : {:.1f}'.format(fps))
     print('Cycling time : {:.1f}'.format(1e6 / fps), 'us')
     print('Exposure time :', exp_time, 'us')
+    print('Image width: ', roi_width)
+    print('Image height: ', roi_height)
 
     # Set up saving location
     output_path = set_output_path()
