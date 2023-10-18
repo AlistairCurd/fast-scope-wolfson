@@ -28,30 +28,32 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         dest='n_frames',
                         type=int,
                         default=10,
-                        help='Required. Number of frames to acquire.'
+                        help='Number of frames to acquire.'
+                        ' Default: 10.'
                         )
 
     parser.add_argument('--fps',
                         dest='fps',
                         type=float,
                         default=1000,
-                        help='Required. Frame rate (frames per second).'
+                        help='Frame rate (frames per second). Default: 1000.'
                         )
 
     parser.add_argument('-x', '--exposure',
                         dest='exp_time',
                         type=int,
-                        help='Optional. Exposure time (microseconds).'
+                        help='Exposure time (microseconds).'
                         ' Must be <= round(1e6 / fps - 1).'
+                        ' Set to this by default.'
                         )
 
     parser.add_argument('-W', '--width',
                         dest='roi_width',
                         type=int,
                         default=1280,
-                        help='Optional. Width of ROI in pixels.'
+                        help='Width of ROI in pixels.'
                         ' Must be in [128, 256, 384, 512, 640, 768, 896,'
-                        ' 1024, 1152, 1280].'
+                        ' 1024, 1152, 1280]. Default: 1280.'
                         )
 
     # Change default if different number of output banks in use?
@@ -60,7 +62,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         type=int,
                         default=128,
                         help='Optional. Height of ROI in pixels.'
-                        ' Must be <= 400.'
+                        ' Must be <= 400. Default: 128.'
                         )
 
     args = parser.parse_args()
