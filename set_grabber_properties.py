@@ -146,7 +146,7 @@ def check_and_set_exposure(fps, exp_time):
         exp_time = round(1e6 / fps - 1)  # For microseconds
 
     # Exit gracefully if exposure time is >= 1 / frame rate
-    elif exp_time >= round(1e6 / fps - 1):
+    elif exp_time > round(1e6 / fps - 1):
         print('\n'
               '*** Please choose an \n'
               'exposure time (us) <= round(1 / frames per second - 1) \n'
