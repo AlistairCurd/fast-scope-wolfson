@@ -13,6 +13,7 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
     # Flags to control test output
     fps_min_allowed = None
     fps_max_allowed = None
+    tested_beyond_max_test = False
 
     # Test fps settings for a minimum fps allowed
     for fps in np.arange(fps_min_test,
@@ -36,27 +37,25 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
     # Test fps settings for a maximum fps allowed,
     # if a minimum allowed setting was reached
     if fps_min_allowed is not None:
+
+        fps_max_allowed = fps_min_allowed
+
+        # From one step after the minimum allowed fps setting upwards...
         for fps in np.arange(fps_min_allowed + fps_step,
                              fps_max_test + fps_step,
                              fps_step
                              ):
-            # print('FPS : {:f}'.format(fps))
-            # From one step after the minimum allowed fps setting upwards,
-            # if the fps setting cannot be applied...
+            # ...if the fps setting can be applied, update the max allowed fps
             try:
                 # Allow time to change setting
                 time.sleep(0.002)
                 grabber.remote.set('AcquisitionFrameRate', float(fps))
+            # otherwise stop the loop and mark that this has happened
             except errors.GenTLException:
-                # ... record the previous attempt
-                # as the maximum allowed and stop
-                fps_max_allowed = fps - fps_step
+                tested_beyond_max_test = True
                 break
 
-    # If highest fps tested was allowable, set this as the
-    # maximum allowable setting
-    if fps == fps_max_test:
-        fps_max_allowed = fps_max_test
+            fps_max_allowed = fps
 
     # PRINT RESULTS if extrema found
     if fps_min_allowed is not None:
@@ -79,7 +78,7 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
         print('\nWarning: Minimum allowable fps setting found '
               'was the lowest tested. Lower fps settings may be allowable.'
               )
-    if fps_min_allowed is not None and fps_max_allowed is None:
+    if fps_min_allowed is not None and tested_beyond_max_test is False:
         print('\nWarning: Maximum allowable fps setting found '
               'was the highest tested. Higher fps settings may be allowable.'
               )
