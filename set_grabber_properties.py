@@ -8,7 +8,7 @@ import sys
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
-                   max_height=400,
+                   max_height=400
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -22,6 +22,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         args (argparse.Namespace object):
             Parsed arguments for downstream use.
     """
+    # Include defaults in help text
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
@@ -68,24 +69,69 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     args = parser.parse_args()
 
     # Check whether height and width will be allowed
-    stop = False
+#    stop = False
+#
+#    if args.roi_height > max_height:
+#        print('\nNope. Please choose an ROI height <= {} pixels.'
+#              .format(max_height)
+#              )
+#        stop = True
+#
+#    if args.roi_width not in allowed_roi_widths:
+#        print('\nNope. Please choose one of these options for ROI width:\n{}'
+#              .format(allowed_roi_widths)
+#              )
+#        stop = True
+#
+#    if stop is True:
+#        sys.exit()
 
-    if args.roi_height > max_height:
-        print('\nNope. Please choose an ROI height <= {} pixels.'
-              .format(max_height)
-              )
-        stop = True
+    allowable_width_height = check_input_width_and_height(
+        args.roi_width, args.roi_height,
+        allowed_roi_widths, max_height
+        )
 
-    if args.roi_width not in allowed_roi_widths:
-        print('\nNope. Please choose one of these options for ROI width:\n{}'
-              .format(allowed_roi_widths)
-              )
-        stop = True
-
-    if stop is True:
+    if allowable_width_height is False:
         sys.exit()
 
     return args
+
+
+def check_input_width_and_height(
+        width_to_set,
+        height_to_set,
+        allowed_roi_widths=[128, 256, 384, 512, 640,
+                            768, 896, 1024, 1152, 1280
+                            ],
+        max_height=400
+        ):
+    """Check that width and height settings are ok for the camera.
+
+    Args:
+        allowed_roi_widths (list):
+            List of ROI widths that do not produce an error.
+        max_height (int):
+            Maximum ROI height allowed.
+
+    Returns:
+        allowable (bool):
+            Assessment of whether the width and height settings are allowed.
+    """
+    allowable = True
+
+    if height_to_set > max_height:
+        print('\nNope. Please choose an ROI height <= {} pixels.'
+              .format(max_height)
+              )
+        allowable = False
+
+    if width_to_set not in allowed_roi_widths:
+        print('\nNope. Please choose one of these options for ROI width:\n{}'
+              .format(allowed_roi_widths)
+              )
+        allowable = False
+
+    return allowable
 
 
 def check_and_set_exposure(fps, exp_time):
