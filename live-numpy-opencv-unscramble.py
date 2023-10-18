@@ -2,9 +2,7 @@
 transpose arrays and use opencv to show images"""
 
 from egrabber import EGenTL, EGrabber, Buffer
-from egrabber import BUFFER_INFO_BASE, BUFFER_INFO_WIDTH
-from egrabber import BUFFER_INFO_HEIGHT, BUFFER_INFO_DATA_SIZE
-from egrabber import INFO_DATATYPE_PTR, INFO_DATATYPE_SIZET
+from egrabber import BUFFER_INFO_WIDTH, BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET
 import ctypes as ct
 import cv2
 import numpy as np
@@ -18,13 +16,7 @@ gui = 'nogui' not in sys.argv
 
 def mono8_to_ndarray(ptr, w, h, size):
     data = ct.cast(ptr, ct.POINTER(ct.c_ubyte * size)).contents
-    c = 1
-    return np.frombuffer(data, count=size, dtype=np.uint8).reshape((h, w, c))
-
-
-def process(ptr, w, h, size):
-    img = mono8_to_ndarray(ptr, w, h, size)
-    return np.reshape(img, (-1, w))
+    return np.frombuffer(data, count=size, dtype=np.uint8).reshape((h, w))
 
 
 def loop(grabber):
@@ -34,11 +26,14 @@ def loop(grabber):
     grabber.start()
     while True:
         with Buffer(grabber, timeout=1000) as buffer:
-            ptr = buffer.get_info(BUFFER_INFO_BASE, INFO_DATATYPE_PTR)
             w = buffer.get_info(BUFFER_INFO_WIDTH, INFO_DATATYPE_SIZET)
             h = buffer.get_info(BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET)
-            size = buffer.get_info(BUFFER_INFO_DATA_SIZE, INFO_DATATYPE_SIZET)
-            img = process(ptr, w, h, size)
+            # Redundant for 8-bit, but makes other pixel formats work
+            mono8 = buffer.convert('Mono8')
+            ptr = mono8.get_address()
+            size = mono8.get_buffer_size()
+            img = mono8_to_ndarray(ptr, w, h, size)
+
             count += 1
             if gui:
                 cv2.imshow("Press any key to exit", img)
@@ -109,28 +104,3 @@ time.sleep(0.1)
 run(grabber)
 
 # pixelFormat = grabber.get_pixel_format()
-
-"""
-if pixelFormat != 'Mono8':
-    print("Unsupported {} pixel format."
-          "This sample works with Mono8 pixel format only."
-          .format(pixelFormat))
-else:
-    # Set up stream to unscramble the middle-outwards reading sequence
-    grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
-    grabber.stream.set('LineWidth', 1280)
-    # LinePitch = 0 is default and sets LinePitch = LineWidth
-    grabber.stream.set('StripeHeight', 1)
-    grabber.stream.set('StripePitch', 1)
-    grabber.stream.set('BlockHeight', 8)
-    # StripeOffset = 0 should be default and fine
-
-    # Set up two banks - although one bank gives full resolution!
-    grabber.remote.set('Banks', 'Banks_AB')  # 2 banks
-
-    # Add a pause to allow grabber settings to take effect
-    time.sleep(0.1)
-
-    # Acquire images
-    run(grabber)
-"""
