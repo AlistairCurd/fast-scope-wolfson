@@ -3,6 +3,7 @@ with EGrabber Coaxlink interface"""
 
 import argparse
 import sys
+import numpy as np
 
 
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
@@ -215,8 +216,9 @@ def unscramble_phantom_S710_output(grabber,
     # Set up stream to unscramble the middle-outwards reading sequence
     grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
-    # LineWidth might change with bit-depth
-    grabber.stream.set('LineWidth', roi_width)
+    # LineWidth is in bytes.
+    # 2 bytes for 12-bit acquisition (like p172 of Coaxlink handbook)
+    grabber.stream.set('LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
 
     # LinePitch = 0 should be default and fine
 
