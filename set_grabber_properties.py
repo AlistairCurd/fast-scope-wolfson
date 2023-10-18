@@ -8,7 +8,8 @@ import sys
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
-                   max_height=400
+                   max_height=400,
+                   allowed_bit_depths=[8, 12]
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -61,9 +62,17 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     parser.add_argument('-H', '--height',
                         dest='roi_height',
                         type=int,
-                        default=128,
-                        help='Optional. Height of ROI in pixels.'
+                        default=400,
+                        help='Height of ROI in pixels.'
                         ' Must be <= {}.'.format(max_height)
+                        )
+
+    parser.add_argument('-b,', '--bit-depth',
+                        dest='bit_depth',
+                        type=int,
+                        default=8,
+                        help='Bit-depth of data per pixel.'
+                        ' One of {}.'.format(allowed_bit_depths)
                         )
 
     args = parser.parse_args()
@@ -76,6 +85,12 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         )
 
     if allowable_width_height is False:
+        sys.exit()
+
+    # Check bit-depth
+    if args.bit_depth not in allowed_bit_depths:
+        print('\nNope. Bit depth must be one of {}.'
+              .format(allowed_bit_depths))
         sys.exit()
 
     return args
@@ -177,7 +192,7 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
 
 def unscramble_phantom_S710_output(grabber,
                                    roi_width,
-                                   pixelformat='Mono8',
+                                   bit_depth=8,
                                    banks='Banks_AB'
                                    ):
     """Set grabber remote and stream to produce unscrambled images
@@ -194,30 +209,24 @@ def unscramble_phantom_S710_output(grabber,
         banks (string):
             Grabber banks setting
     """
-    if pixelformat != 'Mono8':
-        print('Unsupported {} pixel format.'
-              'This sample works with Mono8 pixel format only.'
-              .format(pixelformat)
-              )
-    else:
-        # Set up the use two banks - although one bank gives full resolution!
-        grabber.remote.set('Banks', banks)  # 2 banks
+    # Set up the use two banks - although one bank gives full resolution!
+    grabber.remote.set('Banks', banks)  # 2 banks
 
-        # Set up stream to unscramble the middle-outwards reading sequence
-        grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+    # Set up stream to unscramble the middle-outwards reading sequence
+    grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
-        # LineWidth might change with bit-depth
-        grabber.stream.set('LineWidth', roi_width)
+    # LineWidth might change with bit-depth
+    grabber.stream.set('LineWidth', roi_width)
 
-        # LinePitch = 0 should be default and fine
+    # LinePitch = 0 should be default and fine
 
-        grabber.stream.set('StripeHeight', 1)
-        grabber.stream.set('StripePitch', 1)
-        grabber.stream.set('BlockHeight', 8)
-        # StripeOffset = 0 should be default and fine
+    grabber.stream.set('StripeHeight', 1)
+    grabber.stream.set('StripePitch', 1)
+    grabber.stream.set('BlockHeight', 8)
+    # StripeOffset = 0 should be default and fine
 
-        # Adding a pause helped in a previous script
-        # to allow grabber settings to take effect
-        # Works without at the moment, since running the other settings
-        # takes some time anyway.
-        # time.sleep(0.1)
+    # Adding a pause helped in a previous script
+    # to allow grabber settings to take effect
+    # Works without at the moment, since running the other settings
+    # takes some time anyway.
+    # time.sleep(0.1)

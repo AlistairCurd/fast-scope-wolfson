@@ -70,10 +70,16 @@ def main():
                                    height=cmd_args.roi_height
                                    )
 
+    # Set bit-depth
+    if cmd_args.bit_depth == 8:
+        grabber.remote.set('PixelFormat', 'Mono8')
+    if cmd_args.bit_depth == 12:
+        grabber.remote.set('PixelFormat', 'Mono12')
+
     # Set up grabber stream for unscrambled images
-    set_grabber_properties.unscramble_phantom_S710_output(grabber,
-                                                          cmd_args.roi_width
-                                                          )
+    set_grabber_properties.unscramble_phantom_S710_output(
+        grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
+        )
 
     # Configure fps and exposure time
     grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
