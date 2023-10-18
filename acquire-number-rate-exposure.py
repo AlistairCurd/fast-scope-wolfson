@@ -55,6 +55,7 @@ def main():
     print('Exposure time :', exp_time, 'us')
     print('Image width: ', cmd_args.roi_width)
     print('Image height: ', cmd_args.roi_height)
+    print('Bit depth of pixel: ', cmd_args.bit_depth)
 
     # Set up saving location
     output_path = set_output_path()
