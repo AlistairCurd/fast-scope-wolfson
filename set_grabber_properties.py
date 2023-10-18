@@ -8,7 +8,7 @@ import sys
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
-                   max_height=400
+                   max_height=400,
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -22,21 +22,22 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         args (argparse.Namespace object):
             Parsed arguments for downstream use.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
 
     parser.add_argument('-n', '--numframes',
                         dest='n_frames',
                         type=int,
                         default=10,
                         help='Number of frames to acquire.'
-                        ' Default: 10.'
                         )
 
     parser.add_argument('--fps',
                         dest='fps',
                         type=float,
                         default=1000,
-                        help='Frame rate (frames per second). Default: 1000.'
+                        help='Frame rate (frames per second).'
                         )
 
     parser.add_argument('-x', '--exposure',
@@ -52,8 +53,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         type=int,
                         default=1280,
                         help='Width of ROI in pixels.'
-                        ' Must be in [128, 256, 384, 512, 640, 768, 896,'
-                        ' 1024, 1152, 1280]. Default: 1280.'
+                        ' Must be in {}.'.format(allowed_roi_widths)
                         )
 
     # Change default if different number of output banks in use?
@@ -62,7 +62,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         type=int,
                         default=128,
                         help='Optional. Height of ROI in pixels.'
-                        ' Must be <= 400. Default: 128.'
+                        ' Must be <= {}.'.format(max_height)
                         )
 
     args = parser.parse_args()
@@ -71,12 +71,15 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     stop = False
 
     if args.roi_height > max_height:
-        print('\nPlease choose an ROI height <= 400 pixels.')
+        print('\nNope. Please choose an ROI height <= {} pixels.'
+              .format(max_height)
+              )
         stop = True
 
     if args.roi_width not in allowed_roi_widths:
-        print('\nPlease choose one of these options for ROI width:'
-              '\n128, 256, 384, 512, 640, 768, 896, 1024, 1152, 1280')
+        print('\nNope. Please choose one of these options for ROI width:\n{}'
+              .format(allowed_roi_widths)
+              )
         stop = True
 
     if stop is True:
