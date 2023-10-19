@@ -2,10 +2,10 @@
 
 from egrabber import EGenTL, EGrabber, Buffer
 from pathlib import Path
-# import numpy as np
+import numpy as np
 # import sys
 import cv2
-import math
+# import math
 import time
 import set_grabber_properties
 from convert_data import get_buffer_properties_as_8bit, mono8_to_ndarray
@@ -62,7 +62,7 @@ def main():
     # Set up saving location and filename length
     output_path = set_output_path()
     print('\nOutput will be saved in {}'.format(output_path))
-    len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
+    # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create grabber
     gentl = EGenTL()
@@ -91,6 +91,7 @@ def main():
     grabber.remote.set('ExposureTime', exp_time)
 
     # Make a buffer ready for every frame and start
+    print('\nAllocating buffers...')
     grabber.realloc_buffers(cmd_args.n_frames)
     grabber.start()
 
@@ -101,28 +102,40 @@ def main():
     preview_frames_dt = 0.1 * 1e6  # microseconds
     preview_count = 1
 
+    # Initialise list of buffer pointer addresses
+    ptr_addresses = []
+
+    # Acquire data!
+    print('\nAcquiring data...')
     for frame in range(cmd_args.n_frames):
         buffer = Buffer(grabber)
+
         timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
 
+        ptr_address, width, height, size = \
+            get_buffer_properties_as_8bit(buffer)
+        ptr_addresses.append(ptr_address)
+        numpy_image = mono8_to_ndarray(ptr_address, width, height, size)
+
+        # image_seq[frame] = numpy_image
+
         # Preview after the preview frame time
         if timestamps[-1] - timestamps[0] > \
                 preview_count * preview_frames_dt:
-            buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
-            numpy_image = mono8_to_ndarray(*buffer_props_8bit)
+            # buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
+            # numpy_image = mono8_to_ndarray(*buffer_props_8bit)
             cv2.imshow('Preview', numpy_image)
             cv2.waitKey(1)
             preview_count = preview_count + 1
 
-        buffer.save_to_disk(
-            str(output_path.joinpath('{:0{length}d}.tiff'
-                                     .format(frame, length=len_frame_number))
-                )
-            )
-
-        buffer.push()
+        # buffer.save_to_disk(
+        #    str(output_path.joinpath('{:0{length}d}.tiff'
+        #                             .format(frame, length=len_frame_number))
+        #        )
+        #    )
+    print('\nDone.')
 
     if len(timestamps) > 0:
         print('\nTime at frame 0: {} us'.format(timestamps[0]))
@@ -131,6 +144,32 @@ def main():
                                                )
               )
         print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
+
+    # Save the data at the pointers #
+    print('\nAssembling data to save...')
+    # Initialise array to save
+    all_frames = np.zeros((cmd_args.n_frames,
+                           cmd_args.roi_height,
+                           cmd_args.roi_width
+                           )
+                          )
+
+    # Populate with converted data from the pointers
+    for frame, ptr_address in enumerate(ptr_addresses):
+        if frame % 1000 == 0:
+            print('Frame {} of {}.'.format(frame, cmd_args.n_frames))
+        all_frames[frame] = mono8_to_ndarray(ptr_address, width, height, size)
+
+    # Save
+    output_path = output_path.joinpath('{}frames_{}height_{}width_numpy_tofile'
+                                       .format(cmd_args.n_frames,
+                                               cmd_args.roi_height,
+                                               cmd_args.roi_width
+                                               )
+                                       )
+    print('\nSaving binary file at {}'.format(output_path))
+    print('...')
+    all_frames.tofile(output_path)
 
 
 if __name__ == '__main__':
