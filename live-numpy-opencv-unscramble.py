@@ -2,13 +2,13 @@
 transpose arrays and use opencv to show images"""
 
 from egrabber import EGenTL, EGrabber, Buffer
-from egrabber import BUFFER_INFO_WIDTH, BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET
 import ctypes as ct
 import cv2
 import numpy as np
 import sys
 import time
 import set_grabber_properties
+import convert_data
 
 
 gui = 'nogui' not in sys.argv
@@ -26,17 +26,14 @@ def loop(grabber):
     grabber.start()
     while True:
         with Buffer(grabber, timeout=1000) as buffer:
-            w = buffer.get_info(BUFFER_INFO_WIDTH, INFO_DATATYPE_SIZET)
-            h = buffer.get_info(BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET)
-            # Redundant for 8-bit, but makes other pixel formats work
-            mono8 = buffer.convert('Mono8')
-            ptr = mono8.get_address()
-            size = mono8.get_buffer_size()
-            img = mono8_to_ndarray(ptr, w, h, size)
 
             count += 1
+
             if count % 100 == 0:
                 if gui:
+                    buffer_props_8bit = \
+                        convert_data.get_buffer_properties_as_8bit(buffer)
+                    img = convert_data.mono8_to_ndarray(*buffer_props_8bit)
                     cv2.imshow("Press any key to exit", img)
                     if cv2.waitKey(1) >= 0:
                         break
