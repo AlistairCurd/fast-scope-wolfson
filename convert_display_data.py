@@ -62,9 +62,29 @@ def display_8bit_numpy_opencv(buffer):
 
     Args:
         buffer (Buffer object generated with Euresys egrabber.Buffer)
+
+    Returns:
+        stop_decision (bool):
+            Report on user action to stop display (True means stop)
     """
     buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
     numpy_image = mono8_to_ndarray(*buffer_props_8bit)
+    cv2.imshow('Preview', numpy_image)
+    stop_decision = cv2.waitKey(1) >= 0
+    return stop_decision
+
+
+def display_opencv(numpy_image):
+    """Display the numpy image.
+
+    Args:
+        numpy_image:
+            Numpy array displayable by opencv
+
+    Returns:
+        stop_decision (bool):
+            Report on user action to stop display (True means stop)
+    """
     cv2.imshow('Preview', numpy_image)
     stop_decision = cv2.waitKey(1) >= 0
     return stop_decision
