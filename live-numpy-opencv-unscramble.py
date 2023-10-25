@@ -8,7 +8,7 @@ import numpy as np
 import sys
 import time
 import set_grabber_properties
-import convert_data
+from convert_display_data import display_8bit_numpy_opencv
 
 
 gui = 'nogui' not in sys.argv
@@ -26,16 +26,11 @@ def loop(grabber):
     grabber.start()
     while True:
         with Buffer(grabber, timeout=1000) as buffer:
-
             count += 1
-
             if count % 100 == 0:
                 if gui:
-                    buffer_props_8bit = \
-                        convert_data.get_buffer_properties_as_8bit(buffer)
-                    img = convert_data.mono8_to_ndarray(*buffer_props_8bit)
-                    cv2.imshow("Press any key to exit", img)
-                    if cv2.waitKey(1) >= 0:
+                    stop_decision = display_8bit_numpy_opencv(buffer)
+                    if stop_decision:
                         break
                 elif count == countLimit:
                     break

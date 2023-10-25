@@ -4,11 +4,11 @@ from egrabber import EGenTL, EGrabber, Buffer
 from pathlib import Path
 # import numpy as np
 # import sys
-import cv2
+# import cv2
 import math
 import time
 import set_grabber_properties
-from convert_data import get_buffer_properties_as_8bit, mono8_to_ndarray
+from convert_display_data import display_8bit_numpy_opencv
 
 
 def set_output_path(output_parent_dir='C://Temp',
@@ -117,21 +117,11 @@ def main():
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
 
-        # IF CONVERTING ALL TO NUMPY AS WE GO
-        # ptr_address, width, height, size = \
-        #     get_buffer_properties_as_8bit(buffer)
-        # ptr_addresses.append(ptr_address)
-        # numpy_image = mono8_to_ndarray(ptr_address, width, height, size)
-
         # Preview after the preview frame time
         if timestamps[-1] - timestamps[0] > \
                 preview_count * preview_frames_dt:
-            # Remove this conversion to numpy if
-            # already doing it for every frame
-            buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
-            numpy_image = mono8_to_ndarray(*buffer_props_8bit)
-            cv2.imshow('Preview', numpy_image)
-            cv2.waitKey(1)
+            # Convert to numpy and display
+            display_8bit_numpy_opencv(buffer)
             preview_count = preview_count + 1
 
         buffer.save_to_disk(
@@ -152,34 +142,6 @@ def main():
                                                )
               )
         print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
-
-    # OPTION IF RETAINING ALL FRAMES IM MEMORY ############
-    # AND SAVING AS ONE FILE ##############################
-    # Save the data at the pointers #
-    # print('\nAssembling data to save...')
-    # Initialise array to save
-    # all_frames = np.zeros((cmd_args.n_frames,
-    #                       cmd_args.roi_height,
-    #                       cmd_args.roi_width
-    #                       )
-    #                      )
-
-    # Populate with converted data from the pointers
-    # for frame, ptr_address in enumerate(ptr_addresses):
-    #    if frame % 1000 == 0:
-    #        print('Frame {} of {}.'.format(frame, cmd_args.n_frames))
-    #    all_frames[frame] = mono8_to_ndarray(ptr_address, width, height, size)
-
-    # Save
-    # output_path = output_path.joinpath(
-    #   '{}frames_{}height_{}width_numpy_tofile'.format(cmd_args.n_frames,
-    #                                                   cmd_args.roi_height,
-    #                                                   cmd_args.roi_width
-    #                                                   )
-    #   )
-    # print('\nSaving binary file at {}'.format(output_path))
-    # print('...')
-    # all_frames.tofile(output_path)
 
 
 if __name__ == '__main__':
