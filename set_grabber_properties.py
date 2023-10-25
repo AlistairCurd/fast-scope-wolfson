@@ -134,7 +134,7 @@ def check_input_width_and_height(
     return allowable
 
 
-def check_and_set_exposure(fps, exp_time):
+def check_exposure(fps, exp_time=None):
     """Check exposure time is compatible with fps,
     or set exposure time close to the limit for the fps setting.
 
@@ -144,10 +144,10 @@ def check_and_set_exposure(fps, exp_time):
     at least 0.5 to 1.5 us less than the buffer cycling period.
 
     Args:
-        fps (float, default 1000):
+        fps (float):
             Frame rate (frames per second)
-        exp_time (int):
-            Exposure time (microseconds)
+        exp_time (int, default 0):
+            Proposed exposure time (microseconds)
 
     Returns:
         n_frames (int):
@@ -155,7 +155,8 @@ def check_and_set_exposure(fps, exp_time):
         fps (float):
             Frame rate (frames per second)
         exp_time (int):
-            Exposure time (microseconds)
+            An allowable exposure time (microseconds). Set close to the frame
+            cycling time if none
     """
     # Set exposure time if not present
     if exp_time is None:

@@ -48,9 +48,9 @@ cmd_args = set_grabber_properties.get_cmd_inputs()
 
 # Make sure exposure time is less than cycling time
 # Set if not given
-exp_time = set_grabber_properties.check_and_set_exposure(cmd_args.fps,
-                                                         cmd_args.exp_time
-                                                         )
+exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
+                                                 cmd_args.exp_time
+                                                 )
 
 # Display settings
 print('\nNumber of frames : {}'.format(cmd_args.n_frames))
