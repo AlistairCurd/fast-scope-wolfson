@@ -93,14 +93,15 @@ def main():
 
     # Make a buffer ready for every frame and start
     print('\nAllocating buffers...')
-    grabber.realloc_buffers(cmd_args.n_frames)
+    # grabber.realloc_buffers(cmd_args.n_frames)
+    grabber.realloc_buffers(1000)
     grabber.start()
 
     # Measure speed
     timestamps = []
 
     # Set frame time for live preview
-    preview_frames_dt = 0.1 * 1e6  # microseconds
+    preview_frames_dt = 0.2 * 1e6  # microseconds
     preview_count = 1
 
     # Initialise list of buffer pointer addresses
@@ -138,6 +139,10 @@ def main():
                                      .format(frame, length=len_frame_number))
                 )
             )
+
+        # Allow recyling of the buffer allocation
+        buffer.push()
+
     print('\nDone.')
 
     if len(timestamps) > 0:
