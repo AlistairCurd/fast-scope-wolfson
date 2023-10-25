@@ -84,7 +84,7 @@ set_grabber_properties.unscramble_phantom_S710_output(
 
 # Configure fps and exposure time
 grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
-time.sleep(0.001)  # Allow fps to set first
+time.sleep(0.25)  # Allow fps to set first
 grabber.remote.set('ExposureTime', exp_time)
 
 # Set up two banks - although one bank gives full resolution!
