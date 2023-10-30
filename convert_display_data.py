@@ -74,6 +74,30 @@ def display_8bit_numpy_opencv(buffer):
     return stop_decision
 
 
+def display_8bit_numpy_opencv_from_ptr(ptr, width, height, size):
+    """Convert data to 8-bit and display.
+
+    Args:
+        ptr:
+            Location of the data in memory.
+        width (int):
+            Width of the image.
+        height (int):
+            Height of the image.
+        size (int):
+            Number of pixels in the image (items in the buffer).
+
+    Returns:
+        stop_decision (bool):
+            Report on user action to stop display (True means stop)
+    """
+    # buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
+    numpy_image = mono8_to_ndarray(ptr, width, height, size)
+    cv2.imshow('Preview', numpy_image)
+    stop_decision = cv2.waitKey(1) >= 0
+    return stop_decision
+
+
 def display_opencv(numpy_image):
     """Display the numpy image.
 
