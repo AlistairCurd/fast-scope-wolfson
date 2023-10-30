@@ -22,14 +22,21 @@ def mono8_to_ndarray(ptr, w, h, size):
 def loop(grabber):
     if not gui:
         countLimit = 10
-    count = 0
+    count = 1
+    frames_dt = 0.25
+    # timestamps = []
+    time_start = time.time()
     grabber.start()
     while True:
         with Buffer(grabber, timeout=1000) as buffer:
-            count += 1
-            if count % 100 == 0:
+            # if count % 100 == 0:
+            # timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
+            # if timestamps[-1] - timestamps[0] > 1e-6 * \
+            if time.time() - time_start > \
+                    count * frames_dt:
                 if gui:
                     stop_decision = display_8bit_numpy_opencv(buffer)
+                    count += 1
                     if stop_decision:
                         break
                 elif count == countLimit:
@@ -37,6 +44,7 @@ def loop(grabber):
 
 
 def run(grabber):
+    grabber.stream.set('BufferPartCount', 1)  # Images ready per buffer
     grabber.realloc_buffers(3)
     loop(grabber)
     if gui:
@@ -65,12 +73,6 @@ print('Bit depth of pixel: ', cmd_args.bit_depth)
 gentl = EGenTL()
 grabber = EGrabber(gentl)
 
-# Set up ROI
-set_grabber_properties.set_roi(grabber,
-                               width=cmd_args.roi_width,
-                               height=cmd_args.roi_height
-                               )
-
 # Set bit-depth
 if cmd_args.bit_depth == 8:
     grabber.remote.set('PixelFormat', 'Mono8')
@@ -82,9 +84,16 @@ set_grabber_properties.unscramble_phantom_S710_output(
     grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
     )
 
+# Set up ROI
+set_grabber_properties.set_roi(grabber,
+                               width=cmd_args.roi_width,
+                               height=cmd_args.roi_height
+                               )
+time.sleep(0.2)
+
 # Configure fps and exposure time
 grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
-time.sleep(0.25)  # Allow fps to set first
+time.sleep(0.2)  # Allow fps to set first
 grabber.remote.set('ExposureTime', exp_time)
 
 # Set up two banks - although one bank gives full resolution!
