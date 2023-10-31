@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 
 
-def mono8_to_ndarray(ptr_address, width, height, size):
+def mono8_to_ndarray(ptr_address, width, height, images_per_buffer=1):
     """Convert 8-bit buffer data to a 2D numpy array.
 
     Args:
@@ -23,14 +23,20 @@ def mono8_to_ndarray(ptr_address, width, height, size):
         numpy_image (2D numpy array, uint8):
             2D image data.
     """
-    data = ct.cast(ptr_address, ct.POINTER(ct.c_ubyte * size)).contents
+    image_sequence_size = width * height * images_per_buffer
+    data = ct.cast(ptr_address,
+                   ct.POINTER(ct.c_ubyte * image_sequence_size)
+                   ).contents
     numpy_image = np.frombuffer(data,
-                                count=size,
-                                dtype=np.uint8).reshape((height, width))
+                                count=image_sequence_size,
+                                dtype=np.uint8).reshape((height,
+                                                         width,
+                                                         images_per_buffer
+                                                         ))
     return numpy_image
 
 
-def get_buffer_properties_as_8bit(buffer):
+def get_buffer_properties_image_as_8bit(buffer):
     """Get buffer properties for accessing and using the data in it,
     with data converted to 8-bit.
 
@@ -53,8 +59,7 @@ def get_buffer_properties_as_8bit(buffer):
     # Redundant for 8-bit?, but makes other pixel formats work
     mono8 = buffer.convert('Mono8')
     ptr_address = mono8.get_address()
-    size = mono8.get_buffer_size()
-    return ptr_address, width, height, size
+    return ptr_address, width, height
 
 
 def display_8bit_numpy_opencv(buffer):
@@ -67,14 +72,14 @@ def display_8bit_numpy_opencv(buffer):
         stop_decision (bool):
             Report on user action to stop display (True means stop)
     """
-    buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
+    buffer_props_8bit = get_buffer_properties_image_as_8bit(buffer)
     numpy_image = mono8_to_ndarray(*buffer_props_8bit)
     cv2.imshow('Preview', numpy_image)
     stop_decision = cv2.waitKey(1) >= 0
     return stop_decision
 
 
-def display_8bit_numpy_opencv_from_ptr(ptr, width, height, size):
+def display_8bit_numpy_opencv_from_ptr(ptr, width, height):
     """Convert data to 8-bit and display.
 
     Args:
@@ -92,7 +97,7 @@ def display_8bit_numpy_opencv_from_ptr(ptr, width, height, size):
             Report on user action to stop display (True means stop)
     """
     # buffer_props_8bit = get_buffer_properties_as_8bit(buffer)
-    numpy_image = mono8_to_ndarray(ptr, width, height, size)
+    numpy_image = mono8_to_ndarray(ptr, width, height)
     cv2.imshow('Preview', numpy_image)
     stop_decision = cv2.waitKey(1) >= 0
     return stop_decision
