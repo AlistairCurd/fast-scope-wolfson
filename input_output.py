@@ -48,3 +48,19 @@ def save_from_queue_multiprocess(savequeue):
                 break
             else:
                 pass
+
+
+def display_grabber_settings(grabber_settings):
+    """Print grabber settings to screen.
+
+    Args:
+        grabber_settings (object):
+            An object containing the settings to display.
+    """
+    print('\nNumber of frames : {}'.format(grabber_settings.n_frames))
+    print('Frames per second : {:.1f}'.format(grabber_settings.fps))
+    print('Cycling time : {:.1f}'.format(1e6 / grabber_settings.fps), 'us')
+    print('Exposure time :', grabber_settings, 'us')
+    print('Image width: ', grabber_settings.roi_width)
+    print('Image height: ', grabber_settings.roi_height)
+    print('Bit depth of pixel: ', grabber_settings.bit_depth)

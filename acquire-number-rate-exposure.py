@@ -12,7 +12,7 @@ from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 import set_grabber_properties
 from convert_display_data import mono8_to_ndarray
 # from convert_display_data import display_8bit_numpy_opencv
-from input_output import set_output_path
+from input_output import set_output_path, display_grabber_settings
 from input_output import save_from_queue_multiprocess
 
 
@@ -27,13 +27,7 @@ def main():
                                                      )
 
     # Display settings
-    print('\nNumber of frames : {}'.format(cmd_args.n_frames))
-    print('Frames per second : {:.1f}'.format(cmd_args.fps))
-    print('Cycling time : {:.1f}'.format(1e6 / cmd_args.fps), 'us')
-    print('Exposure time :', exp_time, 'us')
-    print('Image width: ', cmd_args.roi_width)
-    print('Image height: ', cmd_args.roi_height)
-    print('Bit depth of pixel: ', cmd_args.bit_depth)
+    display_grabber_settings(cmd_args)
 
     # Set up saving location and filename length
     output_path = set_output_path()

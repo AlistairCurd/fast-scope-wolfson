@@ -9,6 +9,7 @@ import sys
 import time
 import set_grabber_properties
 from convert_display_data import display_8bit_numpy_opencv
+from input_output import display_grabber_settings
 
 
 gui = 'nogui' not in sys.argv
@@ -61,13 +62,7 @@ exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
                                                  )
 
 # Display settings
-print('\nNumber of frames : {}'.format(cmd_args.n_frames))
-print('Frames per second : {:.1f}'.format(cmd_args.fps))
-print('Cycling time : {:.1f}'.format(1e6 / cmd_args.fps), 'us')
-print('Exposure time :', exp_time, 'us')
-print('Image width: ', cmd_args.roi_width)
-print('Image height: ', cmd_args.roi_height)
-print('Bit depth of pixel: ', cmd_args.bit_depth)
+display_grabber_settings(cmd_args)
 
 # Create grabber
 gentl = EGenTL()
