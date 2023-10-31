@@ -69,7 +69,7 @@ def main():
     t_alloc_start = time.time()
     parts_per_buffer = 100
     grabber.stream.set('BufferPartCount', parts_per_buffer)
-    num_buffers = 860
+    num_buffers = 100
     grabber.realloc_buffers(num_buffers)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
 
@@ -108,11 +108,15 @@ def main():
         #    display_8bit_numpy_opencv(buffer)
         #    preview_count = preview_count + 1
 
-        # buffer.save_to_disk(
-        #    str(output_path.joinpath('{:0{length}d}.tiff'
-        #                             .format(frame, length=len_frame_number))
-        #        )
-        #    )
+            # buffer.save_to_disk(
+            #    str(output_path.joinpath('{}.tiff'.format(buffer_count)
+            #                            # '{:0{length}d}.tiff'
+            #                            # .format(frame,
+            #                                      length=len_frame_number
+            #                                      )
+            #                            )
+            #        )
+            #    )
 
         # Allow recyling of the buffer allocation
         # buffer.push()
