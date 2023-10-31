@@ -67,8 +67,8 @@ def main():
 
     # Multi-part buffer for speed
     t_alloc_start = time.time()
-    # parts_per_buffer = 100
-    # grabber.stream.set('BufferPartCount', parts_per_buffer)
+    parts_per_buffer = 100
+    grabber.stream.set('BufferPartCount', parts_per_buffer)
     num_buffers = 860
     grabber.realloc_buffers(num_buffers)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
