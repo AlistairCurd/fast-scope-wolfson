@@ -3,7 +3,9 @@ with EGrabber Coaxlink interface"""
 
 import argparse
 import sys
+import time
 import numpy as np
+from egrabber import EGenTL, EGrabber
 
 
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
@@ -228,8 +230,37 @@ def unscramble_phantom_S710_output(grabber,
     grabber.stream.set('BlockHeight', 8)
     # StripeOffset = 0 should be default and fine
 
-    # Adding a pause helped in a previous script
-    # to allow grabber settings to take effect
-    # Works without at the moment, since running the other settings
-    # takes some time anyway.
-    # time.sleep(0.1)
+    # Adding a pause sometimes helps to allow grabber settings to take effect
+    time.sleep(0.1)
+
+
+def create_and_configure_grabber(grabber_settings):
+    # Create grabber
+    gentl = EGenTL()
+    grabber = EGrabber(gentl)
+
+    # Set bit-depth
+    if grabber_settings.bit_depth == 8:
+        grabber.remote.set('PixelFormat', 'Mono8')
+    if grabber_settings.bit_depth == 12:
+        grabber.remote.set('PixelFormat', 'Mono12')
+
+    # Set up grabber stream for unscrambled images,
+    # including the right banks
+    unscramble_phantom_S710_output(grabber,
+                                   grabber_settings.roi_width,
+                                   bit_depth=grabber_settings.bit_depth
+                                   )
+
+    # Set up ROI
+    set_roi(grabber,
+            width=grabber_settings.roi_width,
+            height=grabber_settings.roi_height
+            )
+
+    # Configure fps and exposure time
+    grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
+    time.sleep(0.25)  # Allow fps to set first
+    grabber.remote.set('ExposureTime', grabber_settings.exp_time)
+
+    return grabber
