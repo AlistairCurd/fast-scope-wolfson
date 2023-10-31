@@ -30,3 +30,21 @@ def set_output_path(output_parent_dir='C://Temp',
     output_path.mkdir()
 
     return output_path
+
+
+def save_from_queue_multiprocess(savequeue):
+    """Look for data to save from a multiprocessing queue.
+
+    Args:
+        savequeue (multiprocessing Queue object):
+            A queue to query for data entries.
+            If 'stop' is found, the function will finish,
+            otherwise it will keep looping.
+    """
+    while True:
+        if not savequeue.empty():
+            queued_item = savequeue.get()
+            if queued_item == 'stop':
+                break
+            else:
+                pass

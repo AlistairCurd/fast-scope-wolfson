@@ -1,14 +1,16 @@
 """Acquire N frames at frame rate R and exposure time X"""
 
-from egrabber import EGenTL, EGrabber, Buffer
 # import numpy as np
 # import sys
 # import cv2
 # import math
 import time
+from multiprocessing import Queue, Process
+from egrabber import EGenTL, EGrabber, Buffer
 import set_grabber_properties
 # from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path
+from input_output import save_from_queue_multiprocess
 
 
 def main():
@@ -62,17 +64,26 @@ def main():
     time.sleep(0.25)  # Allow fps to set first
     grabber.remote.set('ExposureTime', exp_time)
 
+    # Create queue for buffers and start saving processes
+    savequeue = Queue()
+    num_save_processes = 2
+    save_process_list = []
+    for i in range(num_save_processes):
+        save_process = Process(target=save_from_queue_multiprocess,
+                               args=(savequeue,)
+                               )
+        save_process_list.append(save_process)
+        save_process.start()
+
     # Make a buffer ready for every frame and start
     print('\nAllocating buffers...')
-
-    # Multi-part buffer for speed
+    # Set up multi-part buffer for speed
     t_alloc_start = time.time()
     parts_per_buffer = 100
     grabber.stream.set('BufferPartCount', parts_per_buffer)
     num_buffers = 100
     grabber.realloc_buffers(num_buffers)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
-
     grabber.start()
 
     # Measure speed
@@ -89,13 +100,14 @@ def main():
     # Acquire data!
     buffer_count = 0
     t_start = time.time()
-    t_stop = t_start + 10
+    t_stop = t_start + 3
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
         with Buffer(grabber) as buffer:
             timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
             buffer_count = buffer_count + 1
+            savequeue.put(0)
             t = time.time()
 
         # if cmd_args.bit_depth != 8:
@@ -120,6 +132,12 @@ def main():
 
         # Allow recyling of the buffer allocation
         # buffer.push()
+
+    # Stop save processes
+    for proc in save_process_list:
+        while proc.exitcode is None:
+            savequeue.put('stop')
+            time.sleep(0.1)
 
     print('\nDone.')
 
