@@ -22,9 +22,9 @@ def main():
 
     # Make sure exposure time setting will be less than cycling time
     # Choose if not given
-    exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
-                                                     cmd_args.exp_time
-                                                     )
+    cmd_args.exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
+                                                              cmd_args.exp_time
+                                                              )
 
     # Display settings
     display_grabber_settings(cmd_args)
@@ -59,7 +59,7 @@ def main():
     # Configure fps and exposure time
     grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
     time.sleep(0.25)  # Allow fps to set first
-    grabber.remote.set('ExposureTime', exp_time)
+    grabber.remote.set('ExposureTime', cmd_args.exp_time)
 
     # Create queue for buffers and start saving processes
     savequeue = Queue()

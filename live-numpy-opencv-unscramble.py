@@ -57,9 +57,9 @@ cmd_args = set_grabber_properties.get_cmd_inputs()
 
 # Make sure exposure time is less than cycling time
 # Set if not given
-exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
-                                                 cmd_args.exp_time
-                                                 )
+cmd_args.exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
+                                                          cmd_args.exp_time
+                                                          )
 
 # Display settings
 display_grabber_settings(cmd_args)
@@ -89,7 +89,7 @@ time.sleep(0.2)
 # Configure fps and exposure time
 grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
 time.sleep(0.2)  # Allow fps to set first
-grabber.remote.set('ExposureTime', exp_time)
+grabber.remote.set('ExposureTime', cmd_args.exp_time)
 
 # Set up two banks - although one bank gives full resolution!
 grabber.remote.set('Banks', 'Banks_AB')  # 2 banks
