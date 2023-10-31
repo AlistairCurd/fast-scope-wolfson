@@ -1,13 +1,16 @@
 """Acquire N frames at frame rate R and exposure time X"""
 
-# import numpy as np
 # import sys
 # import cv2
 # import math
 import time
+# import ctypes as ct
+# import numpy as np
 from multiprocessing import Queue, Process
 from egrabber import EGenTL, EGrabber, Buffer
+from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 import set_grabber_properties
+from convert_display_data import mono8_to_ndarray
 # from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path
 from input_output import save_from_queue_multiprocess
@@ -79,8 +82,8 @@ def main():
     print('\nAllocating buffers...')
     # Set up multi-part buffer for speed
     t_alloc_start = time.time()
-    parts_per_buffer = 100
-    grabber.stream.set('BufferPartCount', parts_per_buffer)
+    images_per_buffer = 100
+    grabber.stream.set('BufferPartCount', images_per_buffer)
     num_buffers = 100
     grabber.realloc_buffers(num_buffers)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
@@ -100,15 +103,27 @@ def main():
     # Acquire data!
     buffer_count = 0
     t_start = time.time()
-    t_stop = t_start + 3
+    t_stop = t_start + 1
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
         with Buffer(grabber) as buffer:
+            buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
+                                             INFO_DATATYPE_PTR
+                                             )
             timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
             buffer_count = buffer_count + 1
-            savequeue.put(0)
+            savequeue.put(buffer_pointer)
             t = time.time()
+
+            # Test numpy conversion function
+            numpy_image = mono8_to_ndarray(buffer_pointer,
+                                           cmd_args.roi_width,
+                                           cmd_args.roi_height,
+                                           images_per_buffer
+                                           )
+            # print(numpy_image.shape)
+            # print(numpy_image[10, 10, 10])
 
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
