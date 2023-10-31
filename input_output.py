@@ -1,5 +1,6 @@
 """IO functions"""
 
+# import numpy as np
 from pathlib import Path
 
 
@@ -32,22 +33,30 @@ def set_output_path(output_parent_dir='C://Temp',
     return output_path
 
 
-def save_from_queue_multiprocess(savequeue):
+def save_from_queue_multiprocess(
+        savequeue, width, height, images_per_buffer, output_path
+        ):
     """Look for data to save from a multiprocessing queue.
 
     Args:
         savequeue (multiprocessing Queue object):
-            A queue to query for data entries.
+            A queue to query for data entries of (pointer, buffer number),
+            where pointer is the address of a multi-image buffer.
             If 'stop' is found, the function will finish,
             otherwise it will keep looping.
     """
     while True:
         if not savequeue.empty():
             queued_item = savequeue.get()
-            if queued_item == 'stop':
+            if queued_item is None:
                 break
             else:
-                pass
+                # buffer_pointer, buffer_count = queued_item
+                numpy_image, buffer_count = queued_item
+                # print(numpy_image[10, 10, 10])
+                numpy_image.tofile(
+                    output_path.joinpath('{}'.format(buffer_count))
+                    )
 
 
 def display_grabber_settings(grabber_settings):

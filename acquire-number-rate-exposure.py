@@ -33,16 +33,23 @@ def main():
     print('\nOutput will be saved in {}'.format(output_path))
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
-    # Create and configure grabber
+    # Create and configure grabber and buffer
     grabber = create_and_configure_grabber(cmd_args)
+    images_per_buffer = 100
+    num_buffers = 100
 
     # Create queue for buffers and start saving processes
     savequeue = Queue()
-    num_save_processes = 2
+    num_save_processes = 8
     save_process_list = []
     for i in range(num_save_processes):
         save_process = Process(target=save_from_queue_multiprocess,
-                               args=(savequeue,)
+                               args=(savequeue,
+                                     cmd_args.roi_width,
+                                     cmd_args.roi_height,
+                                     images_per_buffer,
+                                     output_path
+                                     )
                                )
         save_process_list.append(save_process)
         save_process.start()
@@ -51,9 +58,8 @@ def main():
     print('\nAllocating buffers...')
     # Set up multi-part buffer for speed
     t_alloc_start = time.time()
-    images_per_buffer = 100
     grabber.stream.set('BufferPartCount', images_per_buffer)
-    num_buffers = 100
+
     grabber.realloc_buffers(num_buffers)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
     grabber.start()
@@ -72,27 +78,26 @@ def main():
     # Acquire data!
     buffer_count = 0
     t_start = time.time()
-    t_stop = t_start + 1
+    t_stop = t_start + 20
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
         with Buffer(grabber) as buffer:
+            t = time.time()
+
             buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
                                              INFO_DATATYPE_PTR
                                              )
             timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
             buffer_count = buffer_count + 1
-            savequeue.put(buffer_pointer)
-            t = time.time()
 
-            # Test numpy conversion function
+            # Convert to array and queue for a  saving process
             numpy_image = mono8_to_ndarray(buffer_pointer,
                                            cmd_args.roi_width,
                                            cmd_args.roi_height,
                                            images_per_buffer
                                            )
-            # print(numpy_image.shape)
-            # print(numpy_image[10, 10, 10])
+            savequeue.put([numpy_image, buffer_count])
 
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
@@ -104,32 +109,22 @@ def main():
         #    display_8bit_numpy_opencv(buffer)
         #    preview_count = preview_count + 1
 
-            # buffer.save_to_disk(
-            #    str(output_path.joinpath('{}.tiff'.format(buffer_count)
-            #                            # '{:0{length}d}.tiff'
-            #                            # .format(frame,
-            #                                      length=len_frame_number
-            #                                      )
-            #                            )
-            #        )
-            #    )
-
         # Allow recyling of the buffer allocation
         # buffer.push()
 
     # Stop save processes
     for proc in save_process_list:
         while proc.exitcode is None:
-            savequeue.put('stop')
+            savequeue.put(None)
             time.sleep(0.1)
 
     print('\nDone.')
 
     if len(timestamps) > 0:
-        print('\nTime at frame 0: {} us'.format(timestamps[0]))
-        print('Time at frame {}: {} us'.format(len(timestamps) - 1,
-                                               timestamps[-1]
-                                               )
+        print('\nTime at buffer 0: {} us'.format(timestamps[0]))
+        print('Time at buffer {}: {} us'.format(len(timestamps) - 1,
+                                                timestamps[-1]
+                                                )
               )
         print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
 
