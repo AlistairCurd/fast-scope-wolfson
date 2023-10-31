@@ -1,14 +1,13 @@
 """Acquire N frames at frame rate R and exposure time X"""
 
 from egrabber import EGenTL, EGrabber, Buffer
-from pathlib import Path
 # import numpy as np
 # import sys
 # import cv2
-import math
+# import math
 import time
 import set_grabber_properties
-from convert_display_data import display_8bit_numpy_opencv
+# from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path
 
 
@@ -34,7 +33,7 @@ def main():
     # Set up saving location and filename length
     output_path = set_output_path()
     print('\nOutput will be saved in {}'.format(output_path))
-    len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
+    # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create grabber
     gentl = EGenTL()
@@ -65,8 +64,15 @@ def main():
 
     # Make a buffer ready for every frame and start
     print('\nAllocating buffers...')
-    # grabber.realloc_buffers(cmd_args.n_frames)
-    grabber.realloc_buffers(1000)
+
+    # Multi-part buffer for speed
+    t_alloc_start = time.time()
+    # parts_per_buffer = 100
+    # grabber.stream.set('BufferPartCount', parts_per_buffer)
+    num_buffers = 860
+    grabber.realloc_buffers(num_buffers)
+    print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
+
     grabber.start()
 
     # Measure speed
@@ -81,29 +87,35 @@ def main():
     # ptr_addresses = []
 
     # Acquire data!
+    buffer_count = 0
+    t_start = time.time()
+    t_stop = t_start + 10
+    t = t_start
     print('\nAcquiring data...')
-    for frame in range(cmd_args.n_frames):
-        buffer = Buffer(grabber)
+    while t < t_stop:
+        with Buffer(grabber) as buffer:
+            timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
+            buffer_count = buffer_count + 1
+            t = time.time()
 
-        timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
 
         # Preview after the preview frame time
-        if timestamps[-1] - timestamps[0] > \
-                preview_count * preview_frames_dt:
-            # Convert to numpy and display
-            display_8bit_numpy_opencv(buffer)
-            preview_count = preview_count + 1
+        # if timestamps[-1] - timestamps[0] > \
+        #        preview_count * preview_frames_dt:
+        #    # Convert to numpy and display
+        #    display_8bit_numpy_opencv(buffer)
+        #    preview_count = preview_count + 1
 
-        buffer.save_to_disk(
-            str(output_path.joinpath('{:0{length}d}.tiff'
-                                     .format(frame, length=len_frame_number))
-                )
-            )
+        # buffer.save_to_disk(
+        #    str(output_path.joinpath('{:0{length}d}.tiff'
+        #                             .format(frame, length=len_frame_number))
+        #        )
+        #    )
 
         # Allow recyling of the buffer allocation
-        buffer.push()
+        # buffer.push()
 
     print('\nDone.')
 
@@ -114,6 +126,9 @@ def main():
                                                )
               )
         print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
+
+    print('Acquired {} buffers over {} s.'
+          .format(buffer_count, t - t_start))
 
 
 if __name__ == '__main__':
