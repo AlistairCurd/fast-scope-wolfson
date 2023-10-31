@@ -1,13 +1,14 @@
 """Create numpy arrays from acquired Mono8 data,
 transpose arrays and use opencv to show images"""
 
-from egrabber import EGenTL, EGrabber, Buffer
+from egrabber import Buffer
 import ctypes as ct
 import cv2
 import numpy as np
 import sys
 import time
 import set_grabber_properties
+from set_grabber_properties import create_and_configure_grabber
 from convert_display_data import display_8bit_numpy_opencv
 from input_output import display_grabber_settings
 
@@ -64,32 +65,8 @@ cmd_args.exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
 # Display settings
 display_grabber_settings(cmd_args)
 
-# Create grabber
-gentl = EGenTL()
-grabber = EGrabber(gentl)
-
-# Set bit-depth
-if cmd_args.bit_depth == 8:
-    grabber.remote.set('PixelFormat', 'Mono8')
-if cmd_args.bit_depth == 12:
-    grabber.remote.set('PixelFormat', 'Mono12')
-
-# Set up grabber stream for unscrambled images
-set_grabber_properties.unscramble_phantom_S710_output(
-    grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
-    )
-
-# Set up ROI
-set_grabber_properties.set_roi(grabber,
-                               width=cmd_args.roi_width,
-                               height=cmd_args.roi_height
-                               )
-time.sleep(0.2)
-
-# Configure fps and exposure time
-grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
-time.sleep(0.2)  # Allow fps to set first
-grabber.remote.set('ExposureTime', cmd_args.exp_time)
+# Create and configure grabber
+grabber = create_and_configure_grabber(cmd_args)
 
 # Set up two banks - although one bank gives full resolution!
 grabber.remote.set('Banks', 'Banks_AB')  # 2 banks

@@ -7,9 +7,10 @@ import time
 # import ctypes as ct
 # import numpy as np
 from multiprocessing import Queue, Process
-from egrabber import EGenTL, EGrabber, Buffer
+from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
-import set_grabber_properties
+from set_grabber_properties import get_cmd_inputs, check_exposure
+from set_grabber_properties import create_and_configure_grabber
 from convert_display_data import mono8_to_ndarray
 # from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path, display_grabber_settings
@@ -18,13 +19,11 @@ from input_output import save_from_queue_multiprocess
 
 def main():
     # Get script arguments
-    cmd_args = set_grabber_properties.get_cmd_inputs()
+    cmd_args = get_cmd_inputs()
 
     # Make sure exposure time setting will be less than cycling time
     # Choose if not given
-    cmd_args.exp_time = set_grabber_properties.check_exposure(cmd_args.fps,
-                                                              cmd_args.exp_time
-                                                              )
+    cmd_args.exp_time = check_exposure(cmd_args.fps, cmd_args.exp_time)
 
     # Display settings
     display_grabber_settings(cmd_args)
@@ -34,32 +33,8 @@ def main():
     print('\nOutput will be saved in {}'.format(output_path))
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
-    # Create grabber
-    gentl = EGenTL()
-    grabber = EGrabber(gentl)
-
-    # Set bit-depth
-    if cmd_args.bit_depth == 8:
-        grabber.remote.set('PixelFormat', 'Mono8')
-    if cmd_args.bit_depth == 12:
-        grabber.remote.set('PixelFormat', 'Mono12')
-
-    # Set up grabber stream for unscrambled images,
-    # including the right banks
-    set_grabber_properties.unscramble_phantom_S710_output(
-        grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
-        )
-
-    # Set up ROI
-    set_grabber_properties.set_roi(grabber,
-                                   width=cmd_args.roi_width,
-                                   height=cmd_args.roi_height
-                                   )
-
-    # Configure fps and exposure time
-    grabber.remote.set('AcquisitionFrameRate', cmd_args.fps)
-    time.sleep(0.25)  # Allow fps to set first
-    grabber.remote.set('ExposureTime', cmd_args.exp_time)
+    # Create and configure grabber
+    grabber = create_and_configure_grabber(cmd_args)
 
     # Create queue for buffers and start saving processes
     savequeue = Queue()
