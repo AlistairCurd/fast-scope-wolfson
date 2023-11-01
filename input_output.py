@@ -1,5 +1,6 @@
 """IO functions"""
 
+import cv2
 # import numpy as np
 from pathlib import Path
 
@@ -33,30 +34,51 @@ def set_output_path(output_parent_dir='C://Temp',
     return output_path
 
 
-def save_from_queue_multiprocess(
-        savequeue, width, height, images_per_buffer, output_path
-        ):
-    """Look for data to save from a multiprocessing queue.
+def save_from_queue_multiprocess(savequeue, output_path):
+    """Save arrays arriving in a multiprocessing queue.
 
     Args:
         savequeue (multiprocessing Queue object):
-            A queue to query for data entries of (pointer, buffer number),
-            where pointer is the address of a multi-image buffer.
-            If 'stop' is found, the function will finish,
+            A queue to query for a data entry of (numpy_images, buffer number),
+            where numpy_images is a 2D * time array of images.
+            If None appears in the queue, the function will finish,
             otherwise it will keep looping.
     """
-    while True:
+    finished = False
+    while finished is False:
         if not savequeue.empty():
             queued_item = savequeue.get()
             if queued_item is None:
-                break
+                finished = True
             else:
                 # buffer_pointer, buffer_count = queued_item
-                numpy_image, buffer_count = queued_item
+                numpy_images, buffer_count = queued_item
                 # print(numpy_image[10, 10, 10])
-                numpy_image.tofile(
+                numpy_images.tofile(
                     output_path.joinpath('{}'.format(buffer_count))
                     )
+
+
+def display_from_queue_multiprocess(displayqueue):
+    """Display an image arriving in a multiprocessing queue.
+
+    Args:
+        displayqueue (multiprocessing Queue object):
+            A queue to query for an image.
+            If None appears in the queue, the function will finish,
+            otherwise it will keep looping.
+    """
+    finished = False
+    while finished is False:
+        if not displayqueue.empty():
+            queued_item = displayqueue.get()
+            if queued_item is None:
+                finished = True
+            else:
+                image, text = queued_item
+                cv2.imshow(text, image)
+                if cv2.waitKey(1) >= 0:
+                    finished = True
 
 
 def display_grabber_settings(grabber_settings):

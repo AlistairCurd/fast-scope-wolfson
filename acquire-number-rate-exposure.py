@@ -15,6 +15,7 @@ from convert_display_data import mono8_to_ndarray
 # from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path, display_grabber_settings
 from input_output import save_from_queue_multiprocess
+from input_output import display_from_queue_multiprocess
 
 
 def main():
@@ -40,22 +41,26 @@ def main():
     images_per_buffer = 100
     num_buffers = 100
 
-    # Create queue for buffers and start saving processes
+    # Create queue for saving images from buffers
+    # and start saving processes
     print('\nPreparing parallel saving processes...')
     savequeue = Queue()
     num_save_processes = 8
     save_process_list = []
     for i in range(num_save_processes):
         save_process = Process(target=save_from_queue_multiprocess,
-                               args=(savequeue,
-                                     cmd_args.roi_width,
-                                     cmd_args.roi_height,
-                                     images_per_buffer,
-                                     output_path
-                                     )
+                               args=(savequeue, output_path)
                                )
         save_process_list.append(save_process)
         save_process.start()
+
+    # Create queue for images to display and start display process
+    print('\nPreparing parallel display process...')
+    displayqueue = Queue()
+    display_process = Process(target=display_from_queue_multiprocess,
+                              args=(displayqueue,)
+                              )
+    display_process.start()
 
     # Make a buffer ready for every frame and start
     print('\nAllocating buffers...')
@@ -70,18 +75,16 @@ def main():
     # Measure speed
     timestamps = []
 
-    # Set frame time for live preview
-    preview_frames_dt = 0.2 * 1e6  # microseconds
-    preview_count = 1
-
     # Initialise list of buffer pointer addresses
     # Useful if retaining frames in memory to access later
     # ptr_addresses = []
 
     # Acquire data!
     buffer_count = 0
+    live_view_dt = 0.2 * 1e6  # in microseconds, for buffer timestamps
+    live_view_count = 1
     t_start = time.time()
-    t_stop = t_start + 0.1
+    t_stop = t_start + 10
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
@@ -102,6 +105,10 @@ def main():
                                            )
             savequeue.put([numpy_image, buffer_count])
 
+            if timestamps[-1] - timestamps[0] > \
+                    live_view_count * live_view_dt:
+                displayqueue.put([numpy_image[0], 'Hello!'])
+
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
 
@@ -120,6 +127,9 @@ def main():
         while proc.exitcode is None:
             savequeue.put(None)
             time.sleep(0.1)
+
+    # Stop display process
+    displayqueue.put(None)
 
     print('\nDone.')
 
