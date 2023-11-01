@@ -6,6 +6,7 @@ import sys
 import time
 import numpy as np
 from egrabber import EGenTL, EGrabber
+from egrabber import GenTLException
 
 
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
@@ -259,8 +260,15 @@ def create_and_configure_grabber(grabber_settings):
             )
 
     # Configure fps and exposure time
+    time.sleep(0.25)  # Allow ROI to set
     grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
-    time.sleep(0.25)  # Allow fps to set first
-    grabber.remote.set('ExposureTime', grabber_settings.exp_time)
+    # time.sleep(0.5)  # Allow fps to set first
+    exp_time_set = False
+    while exp_time_set is False:
+        try:
+            grabber.remote.set('ExposureTime', grabber_settings.exp_time)
+            exp_time_set = True
+        except GenTLException:
+            pass
 
     return grabber
