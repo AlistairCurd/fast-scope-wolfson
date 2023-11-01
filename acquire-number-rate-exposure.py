@@ -26,6 +26,7 @@ def main():
     cmd_args.exp_time = check_exposure(cmd_args.fps, cmd_args.exp_time)
 
     # Display settings
+    print('\nAcquisition settings:')
     display_grabber_settings(cmd_args)
 
     # Set up saving location and filename length
@@ -34,11 +35,13 @@ def main():
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabber and buffer
+    print('\nSetting up grabber...')
     grabber = create_and_configure_grabber(cmd_args)
     images_per_buffer = 100
     num_buffers = 100
 
     # Create queue for buffers and start saving processes
+    print('\nPreparing parallel saving processes...')
     savequeue = Queue()
     num_save_processes = 8
     save_process_list = []
@@ -78,7 +81,7 @@ def main():
     # Acquire data!
     buffer_count = 0
     t_start = time.time()
-    t_stop = t_start + 20
+    t_stop = t_start + 0.1
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
