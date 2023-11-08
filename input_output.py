@@ -59,7 +59,7 @@ def save_from_queue_multiprocess(savequeue, output_path):
                     )
 
 
-def display_from_queue_multiprocess(displayqueue):
+def display_from_queue_multiprocess(displayqueue, instructqueue):
     """Display an image arriving in a multiprocessing queue.
 
     Args:
@@ -77,9 +77,25 @@ def display_from_queue_multiprocess(displayqueue):
             else:
                 image, text = queued_item
                 # print('Queued shape to display: {}'.format(image.shape))
-                cv2.imshow(text, image)
-                if cv2.waitKey(1) >= 0:
+                cv2.imshow('Press \'t\' to terminate,'
+                           ' \'s\' to save data,'
+                           ' \'p\' for preview mode (no saving).',
+                           image
+                           )
+
+                # if cv2.waitKey(1) >= 0:
+                keypress = cv2.waitKey(1)
+
+                if keypress == ord('t'):
+                    print('\nAcquisition terminated.')
                     finished = True
+                elif keypress == ord('s'):
+                    instructqueue.put('save')
+                    print('\nSaving images...')
+                elif keypress == ord('p'):
+                    instructqueue.put('preview')
+                    print('\nIn preview mode, not saving data...')
+
     # Now finished is true, close display
     cv2.destroyAllWindows()
 

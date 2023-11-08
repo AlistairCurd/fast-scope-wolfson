@@ -40,12 +40,16 @@ def main():
     images_per_buffer = 100
     num_buffers = 100
 
-    # Create queues for saving images from buffers and displaying
-    # and start parallel saving and displaying processes
-    print('\nPreparing parallel saving and display processes...')
+    # Create queues for saving images from buffers,
+    # displaying images,
+    # and user instructions
+
+    # And start parallel saving and displaying processes
+
+    # print('\nPreparing parallel saving and display processes...')
 
     savequeue = Queue()
-    num_save_processes = 16
+    num_save_processes = 1
     save_process_list = []
     for i in range(num_save_processes):
         save_process = Process(target=save_from_queue_multiprocess,
@@ -55,8 +59,9 @@ def main():
         save_process.start()
 
     displayqueue = Queue()
+    instructqueue = Queue()
     display_process = Process(target=display_from_queue_multiprocess,
-                              args=(displayqueue,)
+                              args=(displayqueue, instructqueue)
                               )
     display_process.start()
 
@@ -83,13 +88,20 @@ def main():
     live_view_count = 1
 
     print('\nAcquiring data...')
+    print('\nPress \'t\' to terminate,'
+          '\n\'s\' to save data,'
+          '\n\'p\' for preview mode (no saving)...'
+          '\n(If you have selected another window in the meantime,'
+          ' click on the display window first.)'
+          )
 
-    acquire = True
+    acquire = 'acquire'
+    save_instruction = 'preview'
     t_start = time.time()
     # t_stop = t_start + 10
 
     # while t < t_stop:
-    while acquire:
+    while acquire == 'acquire':
         with Buffer(grabber) as buffer:
             buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
                                              INFO_DATATYPE_PTR
@@ -104,7 +116,15 @@ def main():
                                             images_per_buffer
                                             )
             # print('Acquired shape: {}'.format(numpy_images.shape))
-            savequeue.put([numpy_images, buffer_count])
+
+            # Check for keypress to decide whether to start saving
+            if not instructqueue.empty():
+                # Giving 'save' or 'preview'
+                save_instruction = instructqueue.get()
+
+            # Save if saving initiated
+            if save_instruction == 'save':
+                savequeue.put([numpy_images, buffer_count])
 
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
@@ -112,20 +132,30 @@ def main():
                 displayqueue.put([numpy_images[0], 'Hello!'])
                 live_view_count = live_view_count + 1
 
-            # Stop if key pressed
+            # Stop on terminate signal in display process
             if display_process.exitcode == 0:
-                acquire = False
+                acquire = 'terminate'
     t_end = time.time()
 
-    # Stop display process if necessary
+    # Stop display process and empty queue if necessary
     if display_process.exitcode is None:
         displayqueue.put(None)
+        time.sleep(0.1)
 
-    # Stop save processes
+    while not displayqueue.empty():
+        displayqueue.get()
+        time.sleep(0.1)
+
+    # Stop save processes when queues are empty
+    print('\nStill writing data to disk...')
     for proc in save_process_list:
         while proc.exitcode is None:
             savequeue.put(None)
             time.sleep(0.1)
+
+    # instructqueue should be empty, but just in case
+    if not instructqueue.empty():
+        instructqueue.get()
 
     print('\nDone.')
 
