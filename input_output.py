@@ -79,6 +79,8 @@ def display_from_queue_multiprocess(displayqueue):
                 cv2.imshow(text, image)
                 if cv2.waitKey(1) >= 0:
                     finished = True
+    # Now finished is true, close display
+    cv2.destroyAllWindows()
 
 
 def display_grabber_settings(grabber_settings):

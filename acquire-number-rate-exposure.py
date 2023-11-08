@@ -41,11 +41,12 @@ def main():
     images_per_buffer = 100
     num_buffers = 100
 
-    # Create queue for saving images from buffers
-    # and start saving processes
-    print('\nPreparing parallel saving processes...')
+    # Create queues for saving images from buffers and displaying
+    # and start parallel saving and displaying processes
+    print('\nPreparing parallel saving and display processes...')
+
     savequeue = Queue()
-    num_save_processes = 8
+    num_save_processes = 16
     save_process_list = []
     for i in range(num_save_processes):
         save_process = Process(target=save_from_queue_multiprocess,
@@ -54,8 +55,6 @@ def main():
         save_process_list.append(save_process)
         save_process.start()
 
-    # Create queue for images to display and start display process
-    print('\nPreparing parallel display process...')
     displayqueue = Queue()
     display_process = Process(target=display_from_queue_multiprocess,
                               args=(displayqueue,)
@@ -85,6 +84,7 @@ def main():
     live_view_count = 1
     t_start = time.time()
     t_stop = t_start + 10
+
     t = t_start
     print('\nAcquiring data...')
     while t < t_stop:
@@ -108,6 +108,7 @@ def main():
             if timestamps[-1] - timestamps[0] > \
                     live_view_count * live_view_dt:
                 displayqueue.put([numpy_image[0], 'Hello!'])
+                live_view_count = live_view_count + 1
 
         # if cmd_args.bit_depth != 8:
         #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
@@ -122,14 +123,14 @@ def main():
         # Allow recyling of the buffer allocation
         # buffer.push()
 
+    # Stop display process
+    displayqueue.put(None)
+
     # Stop save processes
     for proc in save_process_list:
         while proc.exitcode is None:
             savequeue.put(None)
             time.sleep(0.1)
-
-    # Stop display process
-    displayqueue.put(None)
 
     print('\nDone.')
 
