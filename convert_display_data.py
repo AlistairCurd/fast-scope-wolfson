@@ -27,13 +27,13 @@ def mono8_to_ndarray(ptr_address, width, height, images_per_buffer=1):
     data = ct.cast(ptr_address,
                    ct.POINTER(ct.c_ubyte * image_sequence_size)
                    ).contents
-    numpy_image = np.frombuffer(data,
-                                count=image_sequence_size,
-                                dtype=np.uint8).reshape((height,
-                                                         width,
-                                                         images_per_buffer
-                                                         ))
-    return numpy_image
+    numpy_images = np.frombuffer(data,
+                                 count=image_sequence_size,
+                                 dtype=np.uint8).reshape((images_per_buffer,
+                                                          height,
+                                                          width
+                                                          ))
+    return numpy_images
 
 
 def get_buffer_properties_image_as_8bit(buffer):

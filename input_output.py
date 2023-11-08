@@ -53,7 +53,7 @@ def save_from_queue_multiprocess(savequeue, output_path):
             else:
                 # buffer_pointer, buffer_count = queued_item
                 numpy_images, buffer_count = queued_item
-                # print(numpy_image[10, 10, 10])
+                # print('Queued shape to save: {}'.format(numpy_images.shape))
                 numpy_images.tofile(
                     output_path.joinpath('{}'.format(buffer_count))
                     )
@@ -76,6 +76,7 @@ def display_from_queue_multiprocess(displayqueue):
                 finished = True
             else:
                 image, text = queued_item
+                # print('Queued shape to display: {}'.format(image.shape))
                 cv2.imshow(text, image)
                 if cv2.waitKey(1) >= 0:
                     finished = True

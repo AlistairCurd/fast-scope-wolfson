@@ -12,7 +12,6 @@ from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 from set_grabber_properties import get_cmd_inputs, check_exposure
 from set_grabber_properties import create_and_configure_grabber
 from convert_display_data import mono8_to_ndarray
-# from convert_display_data import display_8bit_numpy_opencv
 from input_output import set_output_path, display_grabber_settings
 from input_output import save_from_queue_multiprocess
 from input_output import display_from_queue_multiprocess
@@ -83,7 +82,7 @@ def main():
     live_view_dt = 0.2 * 1e6  # in microseconds, for buffer timestamps
     live_view_count = 1
     t_start = time.time()
-    t_stop = t_start + 10
+    t_stop = t_start + 20
 
     t = t_start
     print('\nAcquiring data...')
@@ -98,30 +97,19 @@ def main():
             buffer_count = buffer_count + 1
 
             # Convert to array and queue for a  saving process
-            numpy_image = mono8_to_ndarray(buffer_pointer,
-                                           cmd_args.roi_width,
-                                           cmd_args.roi_height,
-                                           images_per_buffer
-                                           )
-            savequeue.put([numpy_image, buffer_count])
+            numpy_images = mono8_to_ndarray(buffer_pointer,
+                                            cmd_args.roi_width,
+                                            cmd_args.roi_height,
+                                            images_per_buffer
+                                            )
+            # print('Acquired shape: {}'.format(numpy_images.shape))
+            savequeue.put([numpy_images, buffer_count])
 
+            # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
                     live_view_count * live_view_dt:
-                displayqueue.put([numpy_image[0], 'Hello!'])
+                displayqueue.put([numpy_images[0], 'Hello!'])
                 live_view_count = live_view_count + 1
-
-        # if cmd_args.bit_depth != 8:
-        #     buffer.convert('Mono8')  # TRY HIGHER AGAIN FOR 12-BIT
-
-        # Preview after the preview frame time
-        # if timestamps[-1] - timestamps[0] > \
-        #        preview_count * preview_frames_dt:
-        #    # Convert to numpy and display
-        #    display_8bit_numpy_opencv(buffer)
-        #    preview_count = preview_count + 1
-
-        # Allow recyling of the buffer allocation
-        # buffer.push()
 
     # Stop display process
     displayqueue.put(None)
