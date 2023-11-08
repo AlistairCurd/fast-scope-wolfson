@@ -81,15 +81,16 @@ def main():
     buffer_count = 0
     live_view_dt = 0.2 * 1e6  # in microseconds, for buffer timestamps
     live_view_count = 1
-    t_start = time.time()
-    t_stop = t_start + 20
 
-    t = t_start
     print('\nAcquiring data...')
-    while t < t_stop:
-        with Buffer(grabber) as buffer:
-            t = time.time()
 
+    acquire = True
+    t_start = time.time()
+    # t_stop = t_start + 10
+
+    # while t < t_stop:
+    while acquire:
+        with Buffer(grabber) as buffer:
             buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
                                              INFO_DATATYPE_PTR
                                              )
@@ -111,8 +112,14 @@ def main():
                 displayqueue.put([numpy_images[0], 'Hello!'])
                 live_view_count = live_view_count + 1
 
-    # Stop display process
-    displayqueue.put(None)
+            # Stop if key pressed
+            if display_process.exitcode == 0:
+                acquire = False
+    t_end = time.time()
+
+    # Stop display process if necessary
+    if display_process.exitcode is None:
+        displayqueue.put(None)
 
     # Stop save processes
     for proc in save_process_list:
@@ -131,7 +138,7 @@ def main():
         print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
 
     print('Acquired {} buffers over {} s.'
-          .format(buffer_count, t - t_start))
+          .format(buffer_count, t_end - t_start))
 
 
 if __name__ == '__main__':
