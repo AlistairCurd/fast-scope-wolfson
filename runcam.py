@@ -4,6 +4,7 @@
 # import cv2
 # import math
 import time
+from math import ceil
 # import ctypes as ct
 # import numpy as np
 from multiprocessing import Queue, Process
@@ -38,7 +39,17 @@ def main():
     print('\nSetting up grabber...')
     grabber = create_and_configure_grabber(cmd_args)
     images_per_buffer = 100
-    num_buffers = 100
+
+    # Try a length of time for allocated buffers to extend over -
+    # Need more buffers in the pre-allocation for fast frame rate,
+    # but these take too long to allocate for larger fields allowable at
+    # lower frame rates
+    duration_one_image = 1 / cmd_args.fps  # seconds
+    duration_one_buffer = duration_one_image * images_per_buffer
+    duration_allocated_buffers = 0.1  # SET THIS - seconds
+    num_buffers_to_alloc = ceil(duration_allocated_buffers
+                                / duration_one_buffer
+                                )
 
     # Create queues for saving images from buffers,
     # displaying images,
@@ -71,7 +82,7 @@ def main():
     t_alloc_start = time.time()
     grabber.stream.set('BufferPartCount', images_per_buffer)
 
-    grabber.realloc_buffers(num_buffers)
+    grabber.realloc_buffers(num_buffers_to_alloc)
     print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
     grabber.start()
 

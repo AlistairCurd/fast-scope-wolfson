@@ -109,7 +109,7 @@ def display_grabber_settings(grabber_settings):
     """
     print('\nNumber of frames : {}'.format(grabber_settings.n_frames))
     print('Frames per second : {:.1f}'.format(grabber_settings.fps))
-    print('Cycling time : {:.1f}'.format(1e6 / grabber_settings.fps), 'us')
+    print('Cycling time : {:.3f}'.format(1e6 / grabber_settings.fps), 'us')
     print('Exposure time :', grabber_settings.exp_time, 'us')
     print('Image width: ', grabber_settings.roi_width)
     print('Image height: ', grabber_settings.roi_height)
