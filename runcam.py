@@ -50,6 +50,11 @@ def main():
     num_buffers_to_alloc = ceil(duration_allocated_buffers
                                 / duration_one_buffer
                                 )
+    # For slower frame rates, do not use the multi-part buffer,
+    # so that an image from the first buffer is displayed sooner
+    if num_buffers_to_alloc == 1:
+        images_per_buffer = 1
+        num_buffers_to_alloc = 100
 
     # Create queues for saving images from buffers,
     # displaying images,
