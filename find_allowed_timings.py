@@ -1,11 +1,11 @@
 """Find the frame rates allowed at a given resolution."""
 
 from egrabber import EGenTL, EGrabber, errors
-import argparse
 import numpy as np
 import time
-import sys
+
 import set_grabber_properties
+from input_output import get_cmd_inputs
 
 
 def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
@@ -82,100 +82,6 @@ def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
         print('\nWarning: Maximum allowable fps setting found '
               'was the highest tested. Higher fps settings may be allowable.'
               )
-
-
-def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
-                                       1024, 1152, 1280
-                                       ],
-                   max_height=400,
-                   allowed_bit_depths=[8, 12]
-                   ):
-    """Get command prompt inputs for acquisition.
-
-    Args:
-        allowed_roi_widths (list):
-            List of ROI widths that do not produce an error.
-        max_height (int):
-            Maximum ROI height allowed.
-
-    Returns:
-        args (argparse.Namespace object):
-            Parsed arguments for downstream use.
-    """
-# Include defaults in help text
-    parser = argparse.ArgumentParser(
-        description="Test for minimum and maximum frame rates"
-        " at chosen ROI dimensions.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
-
-    parser.add_argument('-W', '--width',
-                        dest='roi_width',
-                        type=int,
-                        default=1280,
-                        help='Width of ROI in pixels.'
-                        ' Must be in {}.'.format(allowed_roi_widths)
-                        )
-
-    # Change default if different number of output banks in use?
-    parser.add_argument('-H', '--height',
-                        dest='roi_height',
-                        type=int,
-                        default=400,
-                        help='Optional. Height of ROI in pixels.'
-                        ' Must be <= {}.'.format(max_height)
-                        )
-
-    parser.add_argument('-b,', '--bit-depth',
-                        dest='bit_depth',
-                        type=int,
-                        default=8,
-                        help='Bit-depth of data per pixel.'
-                        ' One of {}.'.format(allowed_bit_depths)
-                        )
-
-    parser.add_argument('--min-fps',
-                        dest='fps_min_test',
-                        type=float,
-                        default=1.,
-                        help='Minimum frame rate to test (frames per second).'
-                        )
-
-    parser.add_argument('--max-fps',
-                        dest='fps_max_test',
-                        type=float,
-                        default=100000.,
-                        help='Minimum frame rate to test (frames per second).'
-                        )
-
-    parser.add_argument('--step-fps',
-                        dest='fps_step',
-                        type=float,
-                        default=1,
-                        help='Increment to frame rate during test'
-                        ' (frames per second).'
-                        )
-
-    args = parser.parse_args()
-
-    # Check ROI width and height.
-    # Print messages and exit if incompatible with camera.
-    allowable_width_height = \
-        set_grabber_properties.check_input_width_and_height(
-            args.roi_width, args.roi_height,
-            allowed_roi_widths, max_height
-            )
-
-    if allowable_width_height is False:
-        sys.exit()
-
-    # Check bit-depth
-    if args.bit_depth not in allowed_bit_depths:
-        print('\nNope. Bit depth must be one of {}.'
-              .format(allowed_bit_depths))
-        sys.exit()
-
-    return args
 
 
 def main():

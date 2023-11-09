@@ -1,104 +1,12 @@
 """Functions for setting grabber properties
 with EGrabber Coaxlink interface"""
 
-import argparse
 import sys
 import time
 from math import ceil
 import numpy as np
 from egrabber import EGenTL, EGrabber
 from egrabber import GenTLException
-
-
-def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
-                                       1024, 1152, 1280
-                                       ],
-                   max_height=400,
-                   allowed_bit_depths=[8, 12]
-                   ):
-    """Get command prompt inputs for acquisition.
-
-    Args:
-        allowed_roi_widths (list):
-            List of ROI widths that do not produce an error.
-        max_height (int):
-            Maximum ROI height allowed.
-
-    Returns:
-        args (argparse.Namespace object):
-            Parsed arguments for downstream use.
-    """
-    # Include defaults in help text
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
-
-    parser.add_argument('-n', '--numframes',
-                        dest='n_frames',
-                        type=int,
-                        default=10,
-                        help='Number of frames to acquire.'
-                        )
-
-    parser.add_argument('--fps',
-                        dest='fps',
-                        type=float,
-                        default=1000,
-                        help='Frame rate (frames per second).'
-                        )
-
-    parser.add_argument('-x', '--exposure',
-                        dest='exp_time',
-                        type=int,
-                        help='Exposure time (microseconds).'
-                        ' Must be <= round(1e6 / fps - 1).'
-                        ' Set to this by default.'
-                        )
-
-    parser.add_argument('-W', '--width',
-                        dest='roi_width',
-                        type=int,
-                        default=1280,
-                        help='Width of ROI in pixels.'
-                        ' Must be in {}.'.format(allowed_roi_widths)
-                        )
-
-    # Change default if different number of output banks in use?
-    parser.add_argument('-H', '--height',
-                        dest='roi_height',
-                        type=int,
-                        default=400,
-                        help='Height of ROI in pixels.'
-                        ' Must be <= {}.'.format(max_height)
-                        )
-
-    parser.add_argument('-b,', '--bit-depth',
-                        dest='bit_depth',
-                        type=int,
-                        default=8,
-                        help='Bit-depth of data per pixel.'
-                        ' One of {}.'.format(allowed_bit_depths)
-                        )
-
-    args = parser.parse_args()
-
-    # Check ROI width and height.
-    # Print messages and exit if incompatible with camera.
-    allowable_width_height = check_input_width_and_height(
-        args.roi_width, args.roi_height,
-        allowed_roi_widths, max_height
-        )
-
-    if allowable_width_height is False:
-        sys.exit()
-
-    # Check bit-depth
-    if args.bit_depth not in allowed_bit_depths:
-        print('\nNope. Bit depth must be one of {}.'
-              .format(allowed_bit_depths))
-        sys.exit()
-
-    return args
 
 
 def check_input_width_and_height(

@@ -7,15 +7,18 @@ import time
 # import ctypes as ct
 # import numpy as np
 from multiprocessing import Queue, Process
+
 from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
-from set_grabber_properties import get_cmd_inputs, check_exposure
-from set_grabber_properties import create_and_configure_grabber
-from set_grabber_properties import pre_allocate_multipart_buffers
-from convert_display_data import mono8_to_ndarray
+
 from input_output import set_output_path, display_grabber_settings
 from input_output import save_from_queue_multiprocess
 from input_output import display_from_queue_multiprocess
+from input_output import get_cmd_inputs
+from set_grabber_properties import check_exposure
+from set_grabber_properties import create_and_configure_grabber
+from set_grabber_properties import pre_allocate_multipart_buffers
+from convert_display_data import mono8_to_ndarray
 
 
 def main():
