@@ -169,7 +169,7 @@ def display_from_queue_multiprocess(displayqueue, instructqueue):
             if queued_item is None:
                 finished = True
             else:
-                image, text = queued_item
+                image = queued_item
                 # print('Queued shape to display: {}'.format(image.shape))
                 cv2.imshow('Press \'t\' to terminate,'
                            ' \'s\' to save data,'

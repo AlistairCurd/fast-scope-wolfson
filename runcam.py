@@ -130,7 +130,7 @@ def main():
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
                     live_view_count * live_view_dt:
-                displayqueue.put([numpy_images[0], 'Hello!'])
+                displayqueue.put(numpy_images[0])
                 live_view_count = live_view_count + 1
 
             # Stop on terminate signal in display process
