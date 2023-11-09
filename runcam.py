@@ -137,6 +137,31 @@ def main():
                 acquire = 'terminate'
     t_end = time.time()
 
+    if len(timestamps) > 0:
+        timestamp_range = timestamps[-1] - timestamps[0]
+        print('\nTimestamp at buffer 0: {} us'.format(timestamps[0]))
+        print('Timestamp at buffer {}: {} us'
+              .format(len(timestamps) - 1, timestamps[-1])
+              )
+        print('Time between first and list timestamps: {} us'.format(
+                timestamp_range
+                )
+              )
+        print('Time per buffer acquisition: {:.1f} us'
+              .format(timestamp_range / (buffer_count - 1))
+              )
+        print('Acquired {} frames per buffer'.format(images_per_buffer))
+        print('Time per frame: {:.3f} us'
+              .format(timestamp_range
+                      / ((buffer_count - 1) * images_per_buffer)
+                      )
+              )
+
+    print('Acquired {} frames in total over {:.1f} s'
+          ' (timepoints outside acquisition loop).'
+          .format(buffer_count * images_per_buffer, t_end - t_start)
+          )
+
     # Stop display process and empty queue if necessary
     if display_process.exitcode is None:
         displayqueue.put(None)
@@ -158,17 +183,6 @@ def main():
         instructqueue.get()
 
     print('\nDone.')
-
-    if len(timestamps) > 0:
-        print('\nTime at buffer 0: {} us'.format(timestamps[0]))
-        print('Time at buffer {}: {} us'.format(len(timestamps) - 1,
-                                                timestamps[-1]
-                                                )
-              )
-        print('Time elapsed = {} us'.format(timestamps[-1] - timestamps[0]))
-
-    print('Acquired {} buffers over {} s.'
-          .format(buffer_count, t_end - t_start))
 
 
 if __name__ == '__main__':
