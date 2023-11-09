@@ -260,9 +260,9 @@ def create_and_configure_grabber(grabber_settings):
             )
 
     # Configure fps and exposure time
-    time.sleep(0.25)  # Allow ROI to set
+    time.sleep(0.5)  # Allow ROI to set
     grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
-    # time.sleep(0.5)  # Allow fps to set first
+    # time.sleep(0.25)  # Allow fps to set first
     exp_time_set = False
     while exp_time_set is False:
         try:
