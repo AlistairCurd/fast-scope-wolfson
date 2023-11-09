@@ -4,6 +4,7 @@ with EGrabber Coaxlink interface"""
 import argparse
 import sys
 import time
+from math import ceil
 import numpy as np
 from egrabber import EGenTL, EGrabber
 from egrabber import GenTLException
@@ -272,3 +273,64 @@ def create_and_configure_grabber(grabber_settings):
             pass
 
     return grabber
+
+
+def pre_allocate_multipart_buffers(grabber,
+                                   images_per_buffer=100,
+                                   duration_allocated_buffers=0.1,
+                                   verbose=False
+                                   ):
+    """Pre-allocate buffers rapidly,
+    such that there is not a large delay before the first image
+    for low frame rates.
+
+    Changes the input number of images per buffer to 1 if
+    only one image per multi-part buffer would be needed for the frame rate.
+
+    Args:
+        grabber (Egrabber object):
+            Frame grabber object to give a buffer allocation
+        images_per_buffer (int):
+            Number of images for a multipart buffer to contain (can also be 1).
+        fps (float):
+            Frames per second in the acquisition
+        duration_allocated (float):
+            The extent in time that the multipart buffer will cover (seconds).
+        verbose (Bool):
+            Whether to output information on
+            the timing of the allocation procedure.
+
+    Returns:
+        grabber (Egrabber object):
+            Framegrabber now given the pre-allocated buffer.
+        images_per_buffer (int):
+            Number of images for a multipart buffer to contain.
+            Set to 1 if only one multi-part buffer was needed for
+            the time extent specified.
+    """
+    # Try a length of time for allocated buffers to extend over -
+    # Need more buffers in the pre-allocation for fast frame rate,
+    # but these take too long to allocate for larger fields allowable at
+    # lower frame rates
+    duration_one_image = \
+        1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
+    duration_one_buffer = duration_one_image * images_per_buffer
+    num_buffers_to_alloc = ceil(duration_allocated_buffers
+                                / duration_one_buffer
+                                )
+    # For slower frame rates, do not use the multi-part buffer,
+    # so that an image from the first buffer is displayed sooner
+    if num_buffers_to_alloc == 1:
+        images_per_buffer = 1
+        num_buffers_to_alloc = 100
+
+    # Allocate
+    t_alloc_start = time.time()
+    grabber.stream.set('BufferPartCount', images_per_buffer)
+    grabber.realloc_buffers(num_buffers_to_alloc)
+    if verbose:
+        print('Buffer allocation took {} s.'
+              .format(time.time() - t_alloc_start)
+              )
+
+    return grabber, images_per_buffer

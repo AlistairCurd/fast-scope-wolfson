@@ -4,7 +4,6 @@
 # import cv2
 # import math
 import time
-from math import ceil
 # import ctypes as ct
 # import numpy as np
 from multiprocessing import Queue, Process
@@ -12,6 +11,7 @@ from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 from set_grabber_properties import get_cmd_inputs, check_exposure
 from set_grabber_properties import create_and_configure_grabber
+from set_grabber_properties import pre_allocate_multipart_buffers
 from convert_display_data import mono8_to_ndarray
 from input_output import set_output_path, display_grabber_settings
 from input_output import save_from_queue_multiprocess
@@ -35,35 +35,17 @@ def main():
     print('\nOutput will be saved in {}'.format(output_path))
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
-    # Create and configure grabber and buffer
+    # Create and configure grabber
     print('\nSetting up grabber...')
     grabber = create_and_configure_grabber(cmd_args)
-    images_per_buffer = 100
 
-    # Try a length of time for allocated buffers to extend over -
-    # Need more buffers in the pre-allocation for fast frame rate,
-    # but these take too long to allocate for larger fields allowable at
-    # lower frame rates
-    duration_one_image = 1 / cmd_args.fps  # seconds
-    duration_one_buffer = duration_one_image * images_per_buffer
-    duration_allocated_buffers = 0.1  # SET THIS - seconds
-    num_buffers_to_alloc = ceil(duration_allocated_buffers
-                                / duration_one_buffer
-                                )
-    # For slower frame rates, do not use the multi-part buffer,
-    # so that an image from the first buffer is displayed sooner
-    if num_buffers_to_alloc == 1:
-        images_per_buffer = 1
-        num_buffers_to_alloc = 100
-
-    # Create queues for saving images from buffers,
+    # Create queues for
+    # saving images from buffers,
     # displaying images,
     # and user instructions
-
     # And start parallel saving and displaying processes
 
     # print('\nPreparing parallel saving and display processes...')
-
     savequeue = Queue()
     num_save_processes = 1
     save_process_list = []
@@ -81,17 +63,17 @@ def main():
                               )
     display_process.start()
 
-    # Make a buffer ready for every frame and start
+    # Pre-allocate multi-part buffers and start
     print('\nAllocating buffers...')
-    # Set up multi-part buffer for speed
-    t_alloc_start = time.time()
-    grabber.stream.set('BufferPartCount', images_per_buffer)
-
-    grabber.realloc_buffers(num_buffers_to_alloc)
-    print('Buffer allocation took {} s.'.format(time.time() - t_alloc_start))
+    grabber, images_per_buffer = pre_allocate_multipart_buffers(
+        grabber,
+        images_per_buffer=100,
+        duration_allocated_buffers=0.1,
+        verbose=True
+        )
     grabber.start()
 
-    # Measure speed
+    # List for measuring speed
     timestamps = []
 
     # Initialise list of buffer pointer addresses
