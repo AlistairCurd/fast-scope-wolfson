@@ -137,10 +137,13 @@ def save_from_queue_multiprocess(savequeue, output_path):
             where numpy_images is a 2D * time array of images.
             If None appears in the queue, the function will finish,
             otherwise it will keep looping.
+        output_path (pathlib Path):
+            Directory to save images to.
     """
     finished = False
     while finished is False:
         if not savequeue.empty():
+            # print('I\'m here!')
             queued_item = savequeue.get()
             if queued_item is None:
                 finished = True
@@ -161,6 +164,8 @@ def display_from_queue_multiprocess(displayqueue, instructqueue):
             A queue to query for an image.
             If None appears in the queue, the function will finish,
             otherwise it will keep looping.
+        instructqueue(multiprocessing Queue object):
+            A queue to send instructions to for how the acquisition proceeds.
     """
     finished = False
     while finished is False:
@@ -181,6 +186,7 @@ def display_from_queue_multiprocess(displayqueue, instructqueue):
                 keypress = cv2.waitKey(1)
 
                 if keypress == ord('t'):
+                    instructqueue.put('terminate')
                     print('\nAcquisition terminated.')
                     finished = True
                 elif keypress == ord('s'):

@@ -117,3 +117,64 @@ def display_opencv(numpy_image):
     cv2.imshow('Preview', numpy_image)
     stop_decision = cv2.waitKey(1) >= 0
     return stop_decision
+
+
+def build_image_stack_from_queue(inputqueue, outputqueue, save_signal_queue):
+    """Build an image stack from a series of smaller stacks
+    and pass to a queue, when a maximum size (~2GB) is reached,
+    or a signal is received.
+
+    Args:
+        inputqueue (multiprocessing Queue):
+            Queue where arrays arrive to be stacked.
+        outputqueue (multiprocessing Queue):
+            Queue to send output image stacks to.
+        save_signal_queue (multiprocessing Queue):
+            Queue for inst
+    """
+    finished = False
+    array_stack = None
+    stack_counter = 0
+    while finished is False:
+        # Start image stack with first chunk or end loop
+        while array_stack is None:
+            if not inputqueue.empty():
+                queued_item = inputqueue.get()
+                # Stop if signalled to stop
+                if queued_item is None:
+                    finished = True
+                    outputqueue.put(None)
+                    break
+                # Or create stack
+                else:
+                    array_stack, buffer_number = queued_item
+        # Don't bother with appending if the acquisition is finished
+        if finished:
+            break
+        # Append successive chunks or end loop
+        if not inputqueue.empty():
+            queued_item = inputqueue.get()
+            # End and send stack to save process
+            # if stop signal received here
+            if queued_item is None:
+                finished = True
+                outputqueue.put([array_stack, stack_counter])
+                outputqueue.put(None)
+            # Otherwise append frames to stack
+            else:
+                array_chunk, buffer_number = queued_item
+                array_stack = np.append(array_stack, array_chunk, axis=0)
+                # Save if past size threshold (number of elements) for saving
+                if array_stack.size > 2 * 10**6:
+                    # print(array_stack.shape, ',', stack_counter)
+                    outputqueue.put([array_stack, stack_counter])
+                    array_stack = None
+                    stack_counter = stack_counter + 1
+
+        # Save stack if signal for end of sequence arrives
+        # if not save_signal_queue.empty() and array_stack is not None:
+        #    signal = save_signal_queue.get()
+        #    if signal == 'save_now':
+        #        outputqueue.put(array_stack, stack_counter)
+        #        array_stack = None
+        #        stack_counter = stack_counter + 1

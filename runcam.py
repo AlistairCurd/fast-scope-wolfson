@@ -19,6 +19,7 @@ from set_grabber_properties import check_exposure
 from set_grabber_properties import create_and_configure_grabber
 from set_grabber_properties import pre_allocate_multipart_buffers
 from convert_display_data import mono8_to_ndarray
+from convert_display_data import build_image_stack_from_queue
 
 
 def main():
@@ -49,18 +50,25 @@ def main():
     # And start parallel saving and displaying processes
 
     # print('\nPreparing parallel saving and display processes...')
-    savequeue = Queue()
-    num_save_processes = 1
-    save_process_list = []
-    for i in range(num_save_processes):
-        save_process = Process(target=save_from_queue_multiprocess,
-                               args=(savequeue, output_path)
-                               )
-        save_process_list.append(save_process)
-        save_process.start()
+    instructqueue = Queue()  # Instructions as to how acquisition proceeds
+    savequeue = Queue()  # Image stacks to save
+    displayqueue = Queue()  # Images to display
+    build_stack_queue = Queue()  # Chunks to build into image stacks
+    save_signal_queue = Queue()  # Decision to stop building stack and save
 
-    displayqueue = Queue()
-    instructqueue = Queue()
+    build_stack_process = Process(target=build_image_stack_from_queue,
+                                  args=(build_stack_queue,
+                                        savequeue,
+                                        save_signal_queue
+                                        )
+                                  )
+    build_stack_process.start()
+
+    save_process = Process(target=save_from_queue_multiprocess,
+                           args=(savequeue, output_path)
+                           )
+    save_process.start()
+
     display_process = Process(target=display_from_queue_multiprocess,
                               args=(displayqueue, instructqueue)
                               )
@@ -123,9 +131,9 @@ def main():
                 # Giving 'save' or 'preview'
                 save_instruction = instructqueue.get()
 
-            # Save if saving initiated
+            # Add to stack to save if saving initiated
             if save_instruction == 'save':
-                savequeue.put([numpy_images, buffer_count])
+                build_stack_queue.put([numpy_images, buffer_count])
 
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
@@ -163,25 +171,31 @@ def main():
           .format(buffer_count * images_per_buffer, t_end - t_start)
           )
 
-    # Stop display process and empty queue if necessary
+    # Stop processes and empty queues if necessary
     if display_process.exitcode is None:
         displayqueue.put(None)
         time.sleep(0.1)
-
     while not displayqueue.empty():
         displayqueue.get()
         time.sleep(0.1)
 
-    # Stop save processes when queues are empty
+    # Stop stacking process
     print('\nStill writing data to disk...')
-    for proc in save_process_list:
-        while proc.exitcode is None:
-            savequeue.put(None)
-            time.sleep(0.1)
 
-    # instructqueue should be empty, but just in case
+    build_stack_queue.put(None)
+    time.sleep(0.1)
+
+    # if save_process.exitcode is None:
+    #    savequeue.put(None)
+
+    # Make sure other queues are empty
     if not instructqueue.empty():
         instructqueue.get()
+    if not save_signal_queue.empty():
+        save_signal_queue.get()
+
+    while save_process.exitcode is None:
+        pass
 
     print('\nDone.')
 
