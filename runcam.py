@@ -6,20 +6,22 @@
 import time
 # import ctypes as ct
 # import numpy as np
+from math import floor
 from multiprocessing import Queue, Process
 
 from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 
 from input_output import set_output_path, display_grabber_settings
-from input_output import save_from_queue_multiprocess
+# from input_output import save_from_queue_multiprocess
 from input_output import display_from_queue_multiprocess
 from input_output import get_cmd_inputs
+from input_output import store_hdf5
 from set_grabber_properties import check_exposure
 from set_grabber_properties import create_and_configure_grabber
 from set_grabber_properties import pre_allocate_multipart_buffers
 from convert_display_data import mono8_to_ndarray
-from convert_display_data import build_image_stack_from_queue
+# from convert_display_data import build_image_stack_from_queue
 
 
 def main():
@@ -50,27 +52,27 @@ def main():
     # And start parallel saving and displaying processes
 
     # print('\nPreparing parallel saving and display processes...')
-    instructqueue = Queue()  # Instructions as to how acquisition proceeds
-    savequeue = Queue()  # Image stacks to save
-    displayqueue = Queue()  # Images to display
+    instruct_queue = Queue()  # Instructions as to how acquisition proceeds
+#    save_queue = Queue()  # Image stacks to save
+    display_queue = Queue()  # Images to display
     build_stack_queue = Queue()  # Chunks to build into image stacks
-    save_signal_queue = Queue()  # Decision to stop building stack and save
+#    save_signal_queue = Queue()  # Decision to stop building stack and save
 
-    build_stack_process = Process(target=build_image_stack_from_queue,
-                                  args=(build_stack_queue,
-                                        savequeue,
-                                        save_signal_queue
-                                        )
-                                  )
-    build_stack_process.start()
+#    build_stack_process = Process(target=build_image_stack_from_queue,
+#                                  args=(build_stack_queue,
+#                                        save_queue,
+#                                        save_signal_queue
+#                                        )
+#                                  )
+#    build_stack_process.start()
 
-    save_process = Process(target=save_from_queue_multiprocess,
-                           args=(savequeue, output_path)
-                           )
-    save_process.start()
+#    save_process = Process(target=save_from_queue_multiprocess,
+#                           args=(save_queue, output_path)
+#                           )
+#    save_process.start()
 
     display_process = Process(target=display_from_queue_multiprocess,
-                              args=(displayqueue, instructqueue)
+                              args=(display_queue, instruct_queue)
                               )
     display_process.start()
 
@@ -83,6 +85,41 @@ def main():
         verbose=True
         )
     grabber.start()
+
+    # Set up queues, inputs and two parallel processes
+    # for making and saving HDF5 output
+    print('\nSetting up output processes...')
+    begin_filling_queue = Queue()
+    counter_queue = Queue()
+    stop_queue = Queue()
+    max_elements = 1e6
+    elements_per_buffer = cmd_args.roi_width * cmd_args.roi_height
+    buffers_per_hdf5 = floor(max_elements / elements_per_buffer)
+    sequence_shape = (buffers_per_hdf5 * images_per_buffer,
+                      cmd_args.roi_height,
+                      cmd_args.roi_width
+                      )
+    # Set up HDF5 output processes
+    hdf5_processes = []
+    num_hdf5_processes = 1
+    counter_queue.put(0)
+    begin_filling_queue.put('go')
+    for i in range(num_hdf5_processes):
+        proc = Process(target=store_hdf5,
+                       args=(begin_filling_queue,
+                             build_stack_queue,
+                             sequence_shape,
+                             images_per_buffer,
+                             output_path,
+                             counter_queue,
+                             stop_queue
+                             )
+                       )
+        hdf5_processes.append(proc)
+        proc.start()
+        # Allow the first process to pick up the counter
+        # and start signals without competition
+        time.sleep(0.2)
 
     # List for measuring speed
     timestamps = []
@@ -127,9 +164,9 @@ def main():
             # print('Acquired shape: {}'.format(numpy_images.shape))
 
             # Check for keypress to decide whether to start saving
-            if not instructqueue.empty():
+            if not instruct_queue.empty():
                 # Giving 'save' or 'preview'
-                save_instruction = instructqueue.get()
+                save_instruction = instruct_queue.get()
 
             # Add to stack to save if saving initiated
             if save_instruction == 'save':
@@ -138,7 +175,7 @@ def main():
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
                     live_view_count * live_view_dt:
-                displayqueue.put(numpy_images[0])
+                display_queue.put(numpy_images[0])
                 live_view_count = live_view_count + 1
 
             # Stop on terminate signal in display process
@@ -173,29 +210,47 @@ def main():
 
     # Stop processes and empty queues if necessary
     if display_process.exitcode is None:
-        displayqueue.put(None)
+        display_queue.put(None)
         time.sleep(0.1)
-    while not displayqueue.empty():
-        displayqueue.get()
+    while not display_queue.empty():
+        display_queue.get()
         time.sleep(0.1)
 
-    # Stop stacking process
+    # Stop output processes
     print('\nStill writing data to disk...')
 
-    build_stack_queue.put(None)
-    time.sleep(0.1)
+    for proc in hdf5_processes:
+        while proc.exitcode is None:
+            build_stack_queue.put(None)
+            counter_queue.put('stop')
+            stop_queue.put('stop')
+            time.sleep(0.1)
+
+    # breakpoint()
 
     # if save_process.exitcode is None:
-    #    savequeue.put(None)
+    #    save_queue.put(None)
 
     # Make sure other queues are empty
-    if not instructqueue.empty():
-        instructqueue.get()
-    if not save_signal_queue.empty():
-        save_signal_queue.get()
+    if not instruct_queue.empty():
+        instruct_queue.get()
+    while not begin_filling_queue.empty():
+        begin_filling_queue.get()
+        time.sleep(0.1)
+    while not build_stack_queue.empty():
+        build_stack_queue.get()
+        time.sleep(0.1)
+    while not counter_queue.empty():
+        counter_queue.get()
+        time.sleep(0.1)
+    while not stop_queue.empty():
+        stop_queue.get()
+        time.sleep(0.1)
+#    if not save_signal_queue.empty():
+#        save_signal_queue.get()
 
-    while save_process.exitcode is None:
-        pass
+#    while save_process.exitcode is None:
+#        pass
 
     print('\nDone.')
 

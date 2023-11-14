@@ -136,7 +136,8 @@ def store_hdf5(begin_filling_queue,
                sequence_shape,
                images_per_buffer,
                output_path,
-               counter_queue):
+               counter_queue,
+               stop_queue):
     """Make an HDF5 file and populate the dataset.
     Designed to be used by overlapping parallel processes.
 
@@ -168,9 +169,11 @@ def store_hdf5(begin_filling_queue,
         counter_queue (multiprocessing Queue):
             Queue where a counter to include in the filename or
             an instruction to stop arrives.
+        stop_queue (mutliprocessing Queue):
+            Queue where an instruction to stop arrives.
     """
     all_finished = False
-    sequence_length = list(sequence_shape[0])
+    sequence_length = list(sequence_shape)[0]
     max_buffers_per_file = sequence_length / images_per_buffer
     while not all_finished:
 
@@ -183,47 +186,64 @@ def store_hdf5(begin_filling_queue,
                     all_finished = True
         # Go to the end of the function is stop signal received
         if all_finished is True:
-            continue
+            break
 
         # Now we have the counter,
         # create file in advance (ideally) of receiving data
-        with h5py.File(output_path.join(counter), 'w') as outfile:
+        with h5py.File(output_path.joinpath('{}'.format(counter)), 'w'
+                       ) as outfile:
             dataset = outfile.create_dataset(
                 "images", shape=sequence_shape, dtype='i8'
                  )
-        # Also pass an incremented counter to
-        # another parallel process using this function
-        counter = counter + 1
-        counter_queue.put(counter)
+            # Also pass an incremented counter to
+            # another parallel process using this function
+            counter = counter + 1
+            counter_queue.put(counter)
 
-        # Wait for the signal to receive data, and
-        # Fill dataset until stop condition
-        file_finished = False
-        buffers_so_far = 0
-        while not file_finished and buffers_so_far < max_buffers_per_file:
-            if not begin_filling_queue.empty():
-                # Get instruction to fill the dataset out of the queue,
-                # so that a parallel call to this function waits
-                # for a later instruction
-                begin_filling_queue.get()
-                # Fill the dataset up! (Or finish if instructed)
-                queued_data = input_queue.get()
-                if queued_data == 'endfile':
-                    file_finished = True
-                else:
-                    dataset[buffers_so_far * images_per_buffer:
-                            (buffers_so_far + 1) * images_per_buffer,
-                            :,
-                            :
-                            ]
-                    buffers_so_far = buffers_so_far + 1
+            # Wait for the signal to receive data
+            while begin_filling_queue.empty():
+                if not stop_queue.empty():
+                    stop_queue.get()
+                    outfile.close()
+                    print('Finished, just closing queues now.')
+                    return
+                pass
+            # Get this signal out of the queue,
+            # so that a parallel call to this function waits
+            # for a later instruction
+            begin_filling_queue.get()
 
-        # Tell a parallel call to this function
-        # that it can start filling its dataset
-        begin_filling_queue.put('go')
+            # Fill the dataset up! (Or finish if instructed)
+            finish_early = False
+            buffers_so_far = 0
+            # print('Hello?')
+            while not finish_early and buffers_so_far <= max_buffers_per_file:
+                if not input_queue.empty():
+                    # print('Filling')
+                    queued_data = input_queue.get()
+                    if queued_data is None:
+                        finish_early = True
+                    else:
+                        # print(queued_data[0].shape)  # [1] is buffer_count
+                        dataset[buffers_so_far * images_per_buffer:
+                                (buffers_so_far + 1) * images_per_buffer,
+                                :,
+                                :
+                                ] = queued_data[0]  # [1] is buffer_count
+                        buffers_so_far = buffers_so_far + 1
+            # print('full')
+
+            # If not stopping, tell a parallel call to this function
+            # that it can start filling its dataset
+            if finish_early:
+                pass
+            else:
+                begin_filling_queue.put('go')
 
         # Write data to disk
         outfile.close()
+
+    print('Finished, just closing queues now.')
 
 
 def save_from_queue_multiprocess(savequeue, output_path):
