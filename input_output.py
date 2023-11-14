@@ -3,7 +3,10 @@
 import argparse
 import cv2
 import sys
+# import time
 from pathlib import Path
+
+import h5py
 
 from set_grabber_properties import check_input_width_and_height
 
@@ -126,6 +129,101 @@ def set_output_path(output_parent_dir='C://Temp',
     output_path.mkdir()
 
     return output_path
+
+
+def store_hdf5(begin_filling_queue,
+               input_queue,
+               sequence_shape,
+               images_per_buffer,
+               output_path,
+               counter_queue):
+    """Make an HDF5 file and populate the dataset.
+    Designed to be used by overlapping parallel processes.
+
+    One process will receive a counter,
+    then make a counter available to other processes.
+
+    Each process will create an HDF5 file ready to store numpy image arrays.
+    The processes will wait to receive a signal to receive data from
+    an input queue.
+
+    When a process receives this signal, it will fill up the dataset for the
+    HDF5 file with images from multipart buffers.
+    When finished, it will send a signal to another process to start
+    receiving images, and write the data to disk.
+
+    Args:
+        being_filling_queue (multiprocessing Queue):
+            Queue where a signal to begin filling and
+            information for the filename can arrive.
+            Prevents jumbling data up in different prarallel processes.
+        input_queue (multiprocessing Queue):
+            Queue where data to store arrives.
+        sequence_shape (tuple, int):
+            Shape (n_frames, height, width) of the image sequence to store.
+        images_per_buffer (int):
+            Number of images arriving per buffer.
+        output_path (pathlib Path):
+            Directory to save images to.
+        counter_queue (multiprocessing Queue):
+            Queue where a counter to include in the filename or
+            an instruction to stop arrives.
+    """
+    all_finished = False
+    sequence_length = list(sequence_shape[0])
+    max_buffers_per_file = sequence_length / images_per_buffer
+    while not all_finished:
+
+        # Receive counter for filename or stop signal
+        counter = None
+        while counter is None:
+            if not counter_queue.empty():
+                counter = counter_queue.get()
+                if counter == 'stop':
+                    all_finished = True
+        # Go to the end of the function is stop signal received
+        if all_finished is True:
+            continue
+
+        # Now we have the counter,
+        # create file in advance (ideally) of receiving data
+        with h5py.File(output_path.join(counter), 'w') as outfile:
+            dataset = outfile.create_dataset(
+                "images", shape=sequence_shape, dtype='i8'
+                 )
+        # Also pass an incremented counter to
+        # another parallel process using this function
+        counter = counter + 1
+        counter_queue.put(counter)
+
+        # Wait for the signal to receive data, and
+        # Fill dataset until stop condition
+        file_finished = False
+        buffers_so_far = 0
+        while not file_finished and buffers_so_far < max_buffers_per_file:
+            if not begin_filling_queue.empty():
+                # Get instruction to fill the dataset out of the queue,
+                # so that a parallel call to this function waits
+                # for a later instruction
+                begin_filling_queue.get()
+                # Fill the dataset up! (Or finish if instructed)
+                queued_data = input_queue.get()
+                if queued_data == 'endfile':
+                    file_finished = True
+                else:
+                    dataset[buffers_so_far * images_per_buffer:
+                            (buffers_so_far + 1) * images_per_buffer,
+                            :,
+                            :
+                            ]
+                    buffers_so_far = buffers_so_far + 1
+
+        # Tell a parallel call to this function
+        # that it can start filling its dataset
+        begin_filling_queue.put('go')
+
+        # Write data to disk
+        outfile.close()
 
 
 def save_from_queue_multiprocess(savequeue, output_path):
