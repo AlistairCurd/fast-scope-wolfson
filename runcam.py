@@ -6,7 +6,7 @@
 import ctypes as ct
 import time
 # import numpy as np
-from math import floor
+# from math import floor
 from multiprocessing import Queue, Process
 
 from egrabber import Buffer
@@ -86,6 +86,8 @@ def main():
     buffer_count = 0
     live_view_dt = 0.2 * 1e6  # in microseconds, for buffer timestamps
     live_view_count = 1
+    buffer_size = \
+        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
 
     print('\nAcquiring data...')
     print('\nPress \'t\' to terminate,'
@@ -98,9 +100,11 @@ def main():
     acquire = 'acquire'
     save_instruction = 'preview'
     t_start = time.time()
+    storage_size = 0
     # t_stop = t_start + 10
 
     # while t < t_stop:
+    output_file = open(output_path / 'images_bytes', 'wb')
     while acquire == 'acquire':
         with Buffer(grabber) as buffer:
             buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
@@ -108,6 +112,11 @@ def main():
                                              )
             timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
             buffer_count = buffer_count + 1
+
+            # IS THIS RIGHT FOR 12-BIT?
+            buffer_contents = ct.cast(
+                buffer_pointer, ct.POINTER(ct.c_ubyte * buffer_size)
+                ).contents
 
             # Convert to array and queue for a  saving process
             numpy_images = mono8_to_ndarray(buffer_pointer,
@@ -125,6 +134,8 @@ def main():
             # Add to stack to save if saving initiated
             if save_instruction == 'save':
                 # build_stack_queue.put([numpy_images, buffer_count])
+                output_file.write(buffer_contents)
+                storage_size = storage_size + buffer_size
 
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
@@ -134,6 +145,7 @@ def main():
 
             # Stop on terminate signal in display process
             if display_process.exitcode == 0:
+                output_file.close()
                 acquire = 'terminate'
     t_end = time.time()
 
