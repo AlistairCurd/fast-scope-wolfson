@@ -19,7 +19,7 @@ from input_output import get_cmd_inputs
 from set_grabber_properties import check_exposure
 from set_grabber_properties import create_and_configure_grabber
 from set_grabber_properties import pre_allocate_multipart_buffers
-from convert_display_data import mono8_to_ndarray
+# from convert_display_data import mono8_to_ndarray
 
 
 def main():
@@ -101,6 +101,9 @@ def main():
     save_instruction = 'preview'
     t_start = time.time()
     storage_size = 0
+    image_size = cmd_args.roi_height * cmd_args.roi_width
+    height = cmd_args.roi_height
+    width = cmd_args.roi_width
     # t_stop = t_start + 10
 
     # while t < t_stop:
@@ -118,14 +121,6 @@ def main():
                 buffer_pointer, ct.POINTER(ct.c_ubyte * buffer_size)
                 ).contents
 
-            # Convert to array and queue for a  saving process
-            numpy_images = mono8_to_ndarray(buffer_pointer,
-                                            cmd_args.roi_width,
-                                            cmd_args.roi_height,
-                                            images_per_buffer
-                                            )
-            # print('Acquired shape: {}'.format(numpy_images.shape))
-
             # Check for keypress to decide whether to start saving
             if not instruct_queue.empty():
                 # Giving 'save' or 'preview'
@@ -140,7 +135,10 @@ def main():
             # Display images in parallel process via queue
             if timestamps[-1] - timestamps[0] > \
                     live_view_count * live_view_dt:
-                display_queue.put(numpy_images[0])
+                latest_image = np.frombuffer(
+                    buffer_contents, count=image_size, dtype=np.uint8
+                    ).reshape(height, width)
+                display_queue.put(latest_image)
                 live_view_count = live_view_count + 1
 
             # Stop on terminate signal in display process
