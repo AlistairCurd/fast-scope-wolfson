@@ -92,7 +92,7 @@ def main():
     begin_filling_queue = Queue()
     counter_queue = Queue()
     stop_queue = Queue()
-    max_elements = 1e6
+    max_elements = 1e7
     elements_per_buffer = cmd_args.roi_width * cmd_args.roi_height
     buffers_per_hdf5 = floor(max_elements / elements_per_buffer)
     sequence_shape = (buffers_per_hdf5 * images_per_buffer,
@@ -219,12 +219,20 @@ def main():
     # Stop output processes
     print('\nStill writing data to disk...')
 
+    t0 = time.time()
     for proc in hdf5_processes:
         while proc.exitcode is None:
+            while not build_stack_queue.empty():
+                # print(build_stack_queue.qsize())
+                time.sleep(0.1)
+                pass
+            # breakpoint()
             build_stack_queue.put(None)
-            counter_queue.put('stop')
             stop_queue.put('stop')
             time.sleep(0.1)
+    print('Stopping hdf5 process took {:.1f} s'
+          .format(time.time() - t0)
+          )
 
     # breakpoint()
 
@@ -234,18 +242,27 @@ def main():
     # Make sure other queues are empty
     if not instruct_queue.empty():
         instruct_queue.get()
+    print('{:.1f} s after closing instruct_queue'
+          .format(time.time() - t0)
+          )
     while not begin_filling_queue.empty():
         begin_filling_queue.get()
         time.sleep(0.1)
-    while not build_stack_queue.empty():
-        build_stack_queue.get()
-        time.sleep(0.1)
-    while not counter_queue.empty():
-        counter_queue.get()
-        time.sleep(0.1)
-    while not stop_queue.empty():
-        stop_queue.get()
-        time.sleep(0.1)
+    print('{:.1f} s after closing begin_filling_queue'
+          .format(time.time() - t0)
+          )
+#    while not build_stack_queue.empty():
+#        print(build_stack_queue.qsize())
+#        time.sleep(0.1)
+    print('{:.1f} s after finishing build_stack_queue'
+          .format(time.time() - t0)
+          )
+#    while not counter_queue.empty():
+#        counter_queue.get()
+#        time.sleep(0.1)
+#    while not stop_queue.empty():
+#        stop_queue.get()
+#        time.sleep(0.1)
 #    if not save_signal_queue.empty():
 #        save_signal_queue.get()
 
@@ -253,6 +270,9 @@ def main():
 #        pass
 
     print('\nDone.')
+    print('{:.1f} s when done.'
+          .format(time.time() - t0)
+          )
 
 
 if __name__ == '__main__':

@@ -177,16 +177,11 @@ def store_hdf5(begin_filling_queue,
     max_buffers_per_file = sequence_length / images_per_buffer
     while not all_finished:
 
-        # Receive counter for filename or stop signal
+        # Receive counter for filename
         counter = None
         while counter is None:
             if not counter_queue.empty():
                 counter = counter_queue.get()
-                if counter == 'stop':
-                    all_finished = True
-        # Go to the end of the function is stop signal received
-        if all_finished is True:
-            break
 
         # Now we have the counter,
         # create file in advance (ideally) of receiving data
@@ -202,10 +197,10 @@ def store_hdf5(begin_filling_queue,
 
             # Wait for the signal to receive data
             while begin_filling_queue.empty():
-                if not stop_queue.empty():
+                if input_queue.empty() and not stop_queue.empty():
                     stop_queue.get()
                     outfile.close()
-                    print('Finished, just closing queues now.')
+                    # print('Finished, just closing queues now.')
                     return
                 pass
             # Get this signal out of the queue,
@@ -242,6 +237,10 @@ def store_hdf5(begin_filling_queue,
 
         # Write data to disk
         outfile.close()
+
+        if queued_data is None and not stop_queue.empty():
+            stop_queue.get()
+            all_finished = True
 
     print('Finished, just closing queues now.')
 
