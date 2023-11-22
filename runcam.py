@@ -5,7 +5,7 @@
 # import math
 import ctypes as ct
 import time
-# import numpy as np
+import numpy as np
 # from math import floor
 from multiprocessing import Queue, Process
 
@@ -145,9 +145,8 @@ def main():
 
             # Stop on terminate signal in display process
             if display_process.exitcode == 0:
-                output_file.close()
                 acquire = 'terminate'
-    t_end = time.time()
+                t_end = time.time()
 
     if len(timestamps) > 0:
         timestamp_range = timestamps[-1] - timestamps[0]
@@ -174,6 +173,25 @@ def main():
           .format(buffer_count * images_per_buffer, t_end - t_start)
           )
 
+    print('Closing images bytes output file...')
+    output_file.close()
+    print('Reading and converting image bytes to image stack...')
+    # Convert saved byte list to image stack
+    bytes_path = output_path / 'images_bytes'
+    with open(bytes_path, 'rb') as file_to_convert:
+        image_data = file_to_convert.read()
+    image_data = np.frombuffer(image_data, dtype=np.uint8)
+    image_data = image_data.reshape((
+        int(storage_size / cmd_args.roi_height / cmd_args.roi_width),
+        cmd_args.roi_height,
+        cmd_args.roi_width
+        ))
+    # Delete save byte list and save image stack
+    print('Deleting raw bytes file...')
+    bytes_path.unlink()
+    print('Saving image stack...')
+    np.save(output_path / 'image_stack.npy', image_data)
+
     # Stop processes and empty queues if necessary
     if display_process.exitcode is None:
         display_queue.put(None)
@@ -183,7 +201,7 @@ def main():
         time.sleep(0.1)
 
     # Stop output processes
-    print('\nStill writing data to disk...')
+    # print('\nStill writing data to disk...')
 
     t0 = time.time()
 
