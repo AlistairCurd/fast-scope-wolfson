@@ -5,6 +5,8 @@ import cv2
 import sys
 from pathlib import Path
 
+import numpy as np
+
 from set_grabber_properties import check_input_width_and_height
 
 
@@ -180,6 +182,58 @@ def display_from_queue_multiprocess(displayqueue, instructqueue):
                            ' \'s\' to save data,'
                            ' \'p\' for preview mode (no saving).',
                            image
+                           )
+
+                # if cv2.waitKey(1) >= 0:
+                keypress = cv2.waitKey(1)
+
+                if keypress == ord('t'):
+                    instructqueue.put('terminate')
+                    print('\nAcquisition terminated.')
+                    finished = True
+                elif keypress == ord('s'):
+                    instructqueue.put('save')
+                    print('\nSaving images...')
+                elif keypress == ord('p'):
+                    instructqueue.put('preview')
+                    print('\nIn preview mode, not saving data...')
+
+    # Now finished is true, close display
+    cv2.destroyAllWindows()
+
+
+def display_from_buffer_queue_multiprocess(displayqueue,
+                                           instructqueue,
+                                           height,
+                                           width):
+    """Display an image arriving in a multiprocessing queue.
+
+    Args:
+        displayqueue (multiprocessing Queue object):
+            A queue to query for an image.
+            If None appears in the queue, the function will finish,
+            otherwise it will keep looping.
+        instructqueue(multiprocessing Queue object):
+            A queue to send instructions to for how the acquisition proceeds.
+        height (int):
+            Height of the image (pixels).
+        width (int):
+            Width of the image (pixels).
+    """
+    finished = False
+    while finished is False:
+        if not displayqueue.empty():
+            queued_item = displayqueue.get()
+            if queued_item is None:
+                finished = True
+            else:
+                image_data = np.asarray(queued_item, dtype=np.uint8)
+                image_data = image_data.reshape(height, width)
+                # print('Queued shape to display: {}'.format(image.shape))
+                cv2.imshow('Press \'t\' to terminate,'
+                           ' \'s\' to save data,'
+                           ' \'p\' for preview mode (no saving).',
+                           image_data
                            )
 
                 # if cv2.waitKey(1) >= 0:

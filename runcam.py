@@ -5,7 +5,7 @@
 # import math
 import ctypes as ct
 import time
-import numpy as np
+# import numpy as np
 # from math import floor
 from multiprocessing import Queue, Process
 
@@ -13,13 +13,11 @@ from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
 
 from input_output import set_output_path, display_grabber_settings
-# from input_output import save_from_queue_multiprocess
-from input_output import display_from_queue_multiprocess
+from input_output import display_from_buffer_queue_multiprocess
 from input_output import get_cmd_inputs
 from set_grabber_properties import check_exposure
 from set_grabber_properties import create_and_configure_grabber
 from set_grabber_properties import pre_allocate_multipart_buffers
-# from convert_display_data import mono8_to_ndarray
 
 
 def main():
@@ -44,24 +42,18 @@ def main():
     grabber = create_and_configure_grabber(cmd_args)
 
     # Create queues for
-    # saving images from buffers,
-    # displaying images,
+    # displaying images from buffers
     # and user instructions
-    # And start parallel saving and displaying processes
-
-    # print('\nPreparing parallel saving and display processes...')
+    # And start parallel displaying processes
     instruct_queue = Queue()  # Instructions as to how acquisition proceeds
-#    save_queue = Queue()  # Image stacks to save
+
     display_queue = Queue()  # Images to display
-#    save_signal_queue = Queue()  # Decision to stop building stack and save
-
-#    save_process = Process(target=save_from_queue_multiprocess,
-#                           args=(save_queue, output_path)
-#                           )
-#    save_process.start()
-
-    display_process = Process(target=display_from_queue_multiprocess,
-                              args=(display_queue, instruct_queue)
+    display_process = Process(target=display_from_buffer_queue_multiprocess,
+                              args=(display_queue,
+                                    instruct_queue,
+                                    cmd_args.roi_height,
+                                    cmd_args.roi_width
+                                    )
                               )
     display_process.start()
 
@@ -84,10 +76,11 @@ def main():
 
     # Acquire data!
     buffer_count = 0
-    live_view_dt = 0.2 * 1e6  # in microseconds, for buffer timestamps
+
+    # In microseconds, for buffer timestamps, seconds for Python time
+    live_view_dt = 0.2
+
     live_view_count = 1
-    buffer_size = \
-        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
 
     print('\nAcquiring data...')
     print('\nPress \'t\' to terminate,'
@@ -101,9 +94,11 @@ def main():
     save_instruction = 'preview'
     t_start = time.time()
     storage_size = 0
+    buffer_size = \
+        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
     image_size = cmd_args.roi_height * cmd_args.roi_width
-    height = cmd_args.roi_height
-    width = cmd_args.roi_width
+    # height = cmd_args.roi_height
+    # width = cmd_args.roi_width
     # t_stop = t_start + 10
 
     # while t < t_stop:
@@ -113,7 +108,9 @@ def main():
             buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
                                              INFO_DATATYPE_PTR
                                              )
-            timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
+            if len(timestamps) == 0:
+                timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                timestamps.append(timestamp)
             buffer_count = buffer_count + 1
 
             # IS THIS RIGHT FOR 12-BIT?
@@ -128,34 +125,37 @@ def main():
 
             # Add to stack to save if saving initiated
             if save_instruction == 'save':
-                # build_stack_queue.put([numpy_images, buffer_count])
                 output_file.write(buffer_contents)
                 storage_size = storage_size + buffer_size
 
             # Display images in parallel process via queue
-            if timestamps[-1] - timestamps[0] > \
+            if time.time() - t_start > \
                     live_view_count * live_view_dt:
-                latest_image = np.frombuffer(
-                    buffer_contents, count=image_size, dtype=np.uint8
-                    ).reshape(height, width)
-                display_queue.put(latest_image)
+                image_data = buffer_contents[0:image_size]
+                display_queue.put(image_data)
                 live_view_count = live_view_count + 1
 
             # Stop on terminate signal in display process
             if display_process.exitcode == 0:
                 acquire = 'terminate'
+                timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                timestamps.append(buffer.get_info(cmd=3, info_datatype=8))
                 t_end = time.time()
 
     if len(timestamps) > 0:
+
         timestamp_range = timestamps[-1] - timestamps[0]
-        print('\nTimestamp at buffer 0: {} us'.format(timestamps[0]))
+        print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
         print('Timestamp at buffer {}: {} us'
-              .format(len(timestamps) - 1, timestamps[-1])
+              .format(buffer_count, timestamps[-1])
               )
-        print('Time between first and list timestamps: {} us'.format(
+        print('Time between first and last timestamps: {} us'.format(
                 timestamp_range
                 )
               )
+        # Use buffer_count - 1 as divisor to calculate timings,
+        # as we have first and last timestamps, no timestamp before acquiring
+        # the first buffer
         print('Time per buffer acquisition: {:.1f} us'
               .format(timestamp_range / (buffer_count - 1))
               )
@@ -173,22 +173,22 @@ def main():
 
     print('Closing images bytes output file...')
     output_file.close()
-    print('Reading and converting image bytes to image stack...')
+#    print('Reading and converting image bytes to image stack...')
     # Convert saved byte list to image stack
-    bytes_path = output_path / 'images_bytes'
-    with open(bytes_path, 'rb') as file_to_convert:
-        image_data = file_to_convert.read()
-    image_data = np.frombuffer(image_data, dtype=np.uint8)
-    image_data = image_data.reshape((
-        int(storage_size / cmd_args.roi_height / cmd_args.roi_width),
-        cmd_args.roi_height,
-        cmd_args.roi_width
-        ))
+#    bytes_path = output_path / 'images_bytes'
+#    with open(bytes_path, 'rb') as file_to_convert:
+#        image_data = file_to_convert.read()
+#    image_data = np.frombuffer(image_data, dtype=np.uint8)
+#    image_data = image_data.reshape((
+#        int(storage_size / cmd_args.roi_height / cmd_args.roi_width),
+#        cmd_args.roi_height,
+#        cmd_args.roi_width
+#        ))
     # Delete save byte list and save image stack
-    print('Deleting raw bytes file...')
-    bytes_path.unlink()
-    print('Saving image stack...')
-    np.save(output_path / 'image_stack.npy', image_data)
+#    print('Deleting raw bytes file...')
+#    bytes_path.unlink()
+#    print('Saving image stack...')
+#    np.save(output_path / 'image_stack.npy', image_data)
 
     # Stop processes and empty queues if necessary
     if display_process.exitcode is None:
@@ -212,18 +212,6 @@ def main():
     print('{:.1f} s after closing instruct_queue'
           .format(time.time() - t0)
           )
-
-#    while not counter_queue.empty():
-#        counter_queue.get()
-#        time.sleep(0.1)
-#    while not stop_queue.empty():
-#        stop_queue.get()
-#        time.sleep(0.1)
-#    if not save_signal_queue.empty():
-#        save_signal_queue.get()
-
-#    while save_process.exitcode is None:
-#        pass
 
     print('\nDone.')
     print('{:.1f} s when done.'
