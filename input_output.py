@@ -304,7 +304,8 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
                   )
           )
 
-    print('Acquired {} frames in total over {:.1f} s'
-          ' (timepoints outside acquisition loop).'
-          .format(buffer_count * images_per_buffer, timestamp_range / 1e6)
+    print('Acquired {} frames in total over {:.1f} s.'
+          .format(buffer_count * images_per_buffer,
+                  timestamp_range * (1 + 1 / (buffer_count - 1)) / 1e6
+                  )
           )
