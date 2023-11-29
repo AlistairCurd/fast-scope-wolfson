@@ -64,7 +64,7 @@ def main():
         grabber,
         images_per_buffer=100,
         duration_allocated_buffers=0.1,
-        verbose=True
+        verbose=False
         )
     grabber.start()
 
@@ -79,7 +79,7 @@ def main():
     buffer_count = 0
 
     # In microseconds, for buffer timestamps, seconds for Python time
-    live_view_dt = 0.2
+    live_view_dt = 0.5
 
     live_view_count = 1
 
@@ -92,7 +92,6 @@ def main():
           )
 
     acquire = True
-    save_instruction = 'preview'
     already_saving = False
     storage_size = 0
     buffer_size = \
@@ -124,7 +123,8 @@ def main():
                                            ), 'wb'
                             )
                         buffer_count = 0
-                        timestamps = []
+                        timestamps = [buffer.get_info(cmd=3, info_datatype=8)]
+
                         already_saving = True
 
                 elif save_instruction == 'preview':
@@ -172,10 +172,7 @@ def main():
                 ).contents
 
             # Add to stack to save if saving initiated
-            if save_instruction == 'save':
-                if len(timestamps) == 0:
-                    timestamp = buffer.get_info(cmd=3, info_datatype=8)
-                    timestamps.append(timestamp)
+            if already_saving:
                 buffer_count = buffer_count + 1
                 output_file.write(buffer_contents)
                 storage_size = storage_size + buffer_size
