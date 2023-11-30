@@ -33,12 +33,12 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 
-    parser.add_argument('-n', '--numframes',
-                        dest='n_frames',
-                        type=int,
-                        default=10,
-                        help='Number of frames to acquire.'
-                        )
+#    parser.add_argument('-n', '--numframes',
+#                        dest='n_frames',
+#                        type=int,
+#                        default=10,
+#                        help='Number of frames to acquire.'
+#                        )
 
     parser.add_argument('--fps',
                         dest='fps',
@@ -77,7 +77,9 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         type=int,
                         default=8,
                         help='Bit-depth of data per pixel.'
-                        ' One of {}.'.format(allowed_bit_depths)
+                        ' One of {}.'
+                        ' Note, only 8-bit is tested at the moment.'
+                        .format(allowed_bit_depths)
                         )
 
     args = parser.parse_args()
