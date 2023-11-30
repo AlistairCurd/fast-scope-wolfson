@@ -223,6 +223,7 @@ def display_from_buffer_queue_multiprocess(displayqueue,
             Width of the image (pixels).
     """
     finished = False
+    scale_factor = 1
     while finished is False:
         if not displayqueue.empty():
             queued_item = displayqueue.get()
@@ -231,6 +232,14 @@ def display_from_buffer_queue_multiprocess(displayqueue,
             else:
                 image_data = np.asarray(queued_item, dtype=np.uint8)
                 image_data = image_data.reshape(height, width)
+                # Scale image is zoom instruction received
+                if scale_factor == 1:
+                    pass
+                else:
+                    image_data = cv2.resize(image_data, dsize=None,
+                                            fx=scale_factor, fy=scale_factor,
+                                            interpolation=cv2.INTER_NEAREST
+                                            )
                 # print('Queued shape to display: {}'.format(image.shape))
                 cv2.imshow('Press \'t\' to terminate,'
                            ' \'s\' to save data,'
@@ -239,18 +248,28 @@ def display_from_buffer_queue_multiprocess(displayqueue,
                            )
 
                 # if cv2.waitKey(1) >= 0:
-                keypress = cv2.waitKey(1)
+                keypress = cv2.pollKey()
 
-                if keypress == ord('t'):
+                if keypress == -1:  # No keypress
+                    pass
+
+                # Acquisition mode instructions
+                elif keypress == ord('t'):
                     instructqueue.put('terminate')
                     print('\nAcquisition terminated.')
-                    finished = True
+                    finished = True  # Will leave while loop
                 elif keypress == ord('s'):
                     instructqueue.put('save')
                     print('\nSaving images...')
                 elif keypress == ord('p'):
                     instructqueue.put('preview')
                     print('\nIn preview mode, not saving data...')
+
+                # Zoom instructions
+                elif keypress == ord('+'):
+                    scale_factor = scale_factor * 2
+                elif keypress == ord('-'):
+                    scale_factor = scale_factor / 2
 
     # Now finished is true, close display
     cv2.destroyAllWindows()

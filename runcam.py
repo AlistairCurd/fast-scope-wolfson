@@ -90,6 +90,7 @@ def main():
           '\n(If you have selected another window in the meantime,'
           ' click on the display window first.)'
           )
+    print('\nTo zoom, press + or -.')
 
     acquire = True
     already_saving = False
