@@ -156,7 +156,6 @@ def main():
                                         buffer_count,
                                         images_per_buffer
                                         )
-
                         output_file.close()
 
                     already_saving = False
@@ -176,7 +175,18 @@ def main():
             if already_saving:
                 buffer_count = buffer_count + 1
                 output_file.write(buffer_contents)
-                storage_size = storage_size + buffer_size
+                # For saving in chunks - slows acquisition down very slightly
+                # at 86k fps (highest frmae rate tested)
+#                storage_size = storage_size + buffer_size
+#                if storage_size > 1e10:
+#                    output_file.close()
+#                    output_number = output_number + 1
+#                    storage_size = 0
+#                    output_file = open(
+#                        output_path / (output_filename
+#                                       + repr(output_number)
+#                                       ), 'wb'
+#                        )
 
             # Display images in parallel process via queue
             if time.time() - t_start > \
