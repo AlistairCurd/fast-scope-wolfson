@@ -94,7 +94,7 @@ def main():
 
     acquire = True
     already_saving = False
-    storage_size = 0
+#    storage_size = 0
     buffer_size = \
         images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
     image_size = cmd_args.roi_height * cmd_args.roi_width
@@ -194,23 +194,6 @@ def main():
                 image_data = buffer_contents[0:image_size]
                 display_queue.put(image_data)
                 live_view_count = live_view_count + 1
-
-#    print('Reading and converting image bytes to image stack...')
-    # Convert saved byte list to image stack
-#    bytes_path = output_path / 'images_bytes'
-#    with open(bytes_path, 'rb') as file_to_convert:
-#        image_data = file_to_convert.read()
-#    image_data = np.frombuffer(image_data, dtype=np.uint8)
-#    image_data = image_data.reshape((
-#        int(storage_size / cmd_args.roi_height / cmd_args.roi_width),
-#        cmd_args.roi_height,
-#        cmd_args.roi_width
-#        ))
-    # Delete save byte list and save image stack
-#    print('Deleting raw bytes file...')
-#    bytes_path.unlink()
-#    print('Saving image stack...')
-#    np.save(output_path / 'image_stack.npy', image_data)
 
     # Stop processes and empty queues if necessary
 #    if display_process.exitcode is None:
