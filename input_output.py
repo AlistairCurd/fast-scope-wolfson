@@ -78,7 +78,6 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         default=8,
                         help='Bit-depth of data per pixel.'
                         ' One of {}.'
-                        ' Note, only 8-bit is tested at the moment.'
                         .format(allowed_bit_depths)
                         )
 
@@ -207,7 +206,8 @@ def display_from_queue_multiprocess(displayqueue, instructqueue):
 def display_from_buffer_queue_multiprocess(displayqueue,
                                            instructqueue,
                                            height,
-                                           width):
+                                           width,
+                                           bitdepth):
     """Display an image arriving in a multiprocessing queue.
 
     Args:
@@ -224,15 +224,32 @@ def display_from_buffer_queue_multiprocess(displayqueue,
     """
     finished = False
     scale_factor = 1
+
+    if bitdepth == 8:
+        image_dtype = np.uint8
+    elif bitdepth > 8 and bitdepth <= 16:
+        image_dtype = np.uint16
+        scale_values_to_8bit = (2 ** 8 - 1) / (2 ** bitdepth - 1)
+    else:
+        print('Bit depth {} not usable in display process.'
+              .format(bitdepth)
+              )
+        sys.exit()
+
     while finished is False:
         if not displayqueue.empty():
             queued_item = displayqueue.get()
             if queued_item is None:
                 finished = True
             else:
-                image_data = np.asarray(queued_item, dtype=np.uint8)
+                image_data = np.asarray(queued_item, dtype=image_dtype)
                 image_data = image_data.reshape(height, width)
-                # Scale image is zoom instruction received
+                # Scale pixel values to 8-bit
+                if bitdepth != 8:
+                    image_data = np.round(
+                        image_data * scale_values_to_8bit
+                        ).astype(np.uint8)
+                # Scale image if zoom instruction received
                 if scale_factor == 1:
                     pass
                 else:

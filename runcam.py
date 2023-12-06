@@ -1,12 +1,14 @@
 """Acquire N frames at frame rate R and exposure time X"""
 
-# import sys
+
 # import cv2
 # import math
 import ctypes as ct
+import sys
 import time
 # import numpy as np
-# from math import floor
+
+from math import ceil
 from multiprocessing import Queue, Process
 
 from egrabber import Buffer
@@ -34,8 +36,8 @@ def main():
     display_grabber_settings(cmd_args)
 
     # Set up saving location and filename length
-    output_path = set_output_path()
-    print('\nOutput will be saved in {}'.format(output_path))
+    output_path_parent = set_output_path()
+    print('\nOutput will be saved in {}'.format(output_path_parent))
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabber
@@ -53,7 +55,8 @@ def main():
                               args=(display_queue,
                                     instruct_queue,
                                     cmd_args.roi_height,
-                                    cmd_args.roi_width
+                                    cmd_args.roi_width,
+                                    cmd_args.bit_depth
                                     )
                               )
     display_process.start()
@@ -68,20 +71,49 @@ def main():
         )
     grabber.start()
 
-    # List for measuring speed
-    timestamps = []
-
     # Initialise list of buffer pointer addresses
     # Useful if retaining frames in memory to access later
     # ptr_addresses = []
 
-    # Acquire data!
-    buffer_count = 0
-
+    # List for measuring speed
+    timestamps = []
     # In microseconds, for buffer timestamps, seconds for Python time
-    live_view_dt = 0.5
-
+    live_view_dt = 0.2
     live_view_count = 1
+
+    acquire = True
+    already_saving = False
+
+    buffer_count = 0
+#    storage_size = 0
+    buffer_size = \
+        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
+    image_size = cmd_args.roi_height * cmd_args.roi_width
+    # height = cmd_args.roi_height
+    # width = cmd_args.roi_width
+
+    # For use of 12-bit data
+    bit_depth_factor = cmd_args.bit_depth / 8
+    # 10 to 14-bit buffer is by default unpacked into 16 bits
+    # by the Coaxlink frame grabber,
+    # aligned to the least significant bit
+    bit_depth_factor = int(ceil(bit_depth_factor))
+    if cmd_args.bit_depth == 8:
+        buffer_dtype = ct.c_ubyte
+    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+        buffer_dtype = ct.c_uint16
+    else:
+        print('Bit depth {} not usable in display process.'
+              .format(cmd_args.bit_depth)
+              )
+        sys.exit()
+
+    output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
+    if cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+        output_filename_stem = \
+            output_filename_stem + 'storedas16bit_'
+
+    output_number = 0
 
     print('\nAcquiring data...')
     print('\nPress \'t\' to terminate,'
@@ -92,19 +124,7 @@ def main():
           )
     print('\nTo zoom, press + or -.')
 
-    acquire = True
-    already_saving = False
-#    storage_size = 0
-    buffer_size = \
-        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
-    image_size = cmd_args.roi_height * cmd_args.roi_width
-    # height = cmd_args.roi_height
-    # width = cmd_args.roi_width
     # t_stop = t_start + 10
-
-    output_filename = 'images_bytes_'
-    output_number = 0
-
     t_start = time.time()
     # while t < t_stop:
     while acquire:
@@ -118,11 +138,10 @@ def main():
 
                 if save_instruction == 'save':
                     if not already_saving:
-                        output_file = open(
-                            output_path / (output_filename
-                                           + repr(output_number)
-                                           ), 'wb'
-                            )
+                        output_filename = \
+                            output_filename_stem + repr(output_number) + '_'
+                        output_path = output_path_parent / output_filename
+                        output_file = open(output_path, 'wb')
                         buffer_count = 0
                         timestamps = [buffer.get_info(cmd=3, info_datatype=8)]
 
@@ -142,6 +161,16 @@ def main():
                                         )
 
                         output_file.close()
+
+                        # Rename to add more info on contents
+                        final_filename = \
+                            output_filename + '{}images_H{}_W{}'.format(
+                                buffer_count * images_per_buffer,
+                                cmd_args.roi_height,
+                                cmd_args.roi_width
+                                )
+                        output_path.rename(output_path_parent / final_filename)
+
                         output_number = output_number + 1
                         already_saving = False
 
@@ -158,6 +187,15 @@ def main():
                                         )
                         output_file.close()
 
+                        # Rename to add more info on contents
+                        final_filename = \
+                            output_filename + '{}images_H{}_W{}'.format(
+                                buffer_count * images_per_buffer,
+                                cmd_args.roi_height,
+                                cmd_args.roi_width
+                                )
+                        output_path.rename(output_path_parent / final_filename)
+
                     already_saving = False
                     acquire = False
                     continue
@@ -168,8 +206,10 @@ def main():
 
             # IS THIS RIGHT FOR 12-BIT?
             buffer_contents = ct.cast(
-                buffer_pointer, ct.POINTER(ct.c_ubyte * buffer_size)
+                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
+
+#            breakpoint()
 
             # Add to stack to save if saving initiated
             if already_saving:
@@ -191,7 +231,7 @@ def main():
             # Display images in parallel process via queue
             if time.time() - t_start > \
                     live_view_count * live_view_dt:
-                image_data = buffer_contents[0:image_size]
+                image_data = buffer_contents[0:image_size * bit_depth_factor]
                 display_queue.put(image_data)
                 live_view_count = live_view_count + 1
 
