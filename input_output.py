@@ -51,7 +51,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         dest='exp_time',
                         type=int,
                         help='Exposure time (microseconds).'
-                        ' Must be <= round(1e6 / fps - 1).'
+                        ' Must be an integer <= floor(1e6 / fps - 0.001).'
                         ' Set to this by default.'
                         )
 

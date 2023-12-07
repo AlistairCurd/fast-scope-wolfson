@@ -8,7 +8,7 @@ import sys
 import time
 # import numpy as np
 
-from math import ceil
+# from math import ceil
 from multiprocessing import Queue, Process
 
 from egrabber import Buffer
@@ -93,11 +93,9 @@ def main():
     # width = cmd_args.roi_width
 
     # For use of 12-bit data
-    bit_depth_factor = cmd_args.bit_depth / 8
     # 10 to 14-bit buffer is by default unpacked into 16 bits
     # by the Coaxlink frame grabber,
     # aligned to the least significant bit
-    bit_depth_factor = int(ceil(bit_depth_factor))
     if cmd_args.bit_depth == 8:
         buffer_dtype = ct.c_ubyte
     elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:

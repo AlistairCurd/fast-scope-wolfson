@@ -72,16 +72,18 @@ def check_exposure(fps, exp_time=None):
     """
     # Set exposure time if not present
     if exp_time is None:
-        exp_time = round(1e6 / fps - 1)  # For microseconds
+        exp_time = 1e6 / fps - 0.45
 
     # Exit gracefully if exposure time is >= 1 / frame rate
-    elif exp_time > round(1e6 / fps - 1):
+    elif exp_time > 1e6 / fps - 0.45:
         print('\n'
               '*** Please choose an \n'
-              'exposure time (us) <= round(1 / frames per second - 1) \n'
-              'and start again.'
+              'exposure time (us) <= 1e6 / fps - 0.45'
+              '\nand start again.'
               )
         sys.exit()
+    else:
+        pass
 
     return exp_time
 
@@ -145,6 +147,14 @@ def unscramble_phantom_S710_output(grabber,
 
 
 def create_and_configure_grabber(grabber_settings):
+    """Create Egrabber instance.
+
+    Args:
+        grabber_settings, has attributes:
+            bit_depth, roi_width, roi_height, fps, exp_time
+    Returns:
+        grabber (Egrabber object)
+    """
     # Create grabber
     gentl = EGenTL()
     grabber = EGrabber(gentl)
