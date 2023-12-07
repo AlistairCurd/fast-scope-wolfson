@@ -14,7 +14,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
                    max_height=400,
-                   allowed_bit_depths=[8, 12]
+                   allowed_bit_depths=[8, 12, 16]
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -258,6 +258,10 @@ def display_from_buffer_queue_multiprocess(displayqueue,
                                             interpolation=cv2.INTER_NEAREST
                                             )
                 # print('Queued shape to display: {}'.format(image.shape))
+
+                # Dummy image data
+                # image_data = np.array([[10, 10], [10, 10]], dtype=np.uint8)
+
                 cv2.imshow('Press \'t\' to terminate,'
                            ' \'s\' to save data,'
                            ' \'p\' for preview mode (no saving).',

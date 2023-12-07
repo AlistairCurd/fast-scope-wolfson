@@ -65,7 +65,7 @@ def main():
     print('\nAllocating buffers...')
     grabber, images_per_buffer = pre_allocate_multipart_buffers(
         grabber,
-        images_per_buffer=100,
+        images_per_buffer=200,
         duration_allocated_buffers=0.1,
         verbose=False
         )
@@ -102,6 +102,7 @@ def main():
         buffer_dtype = ct.c_ubyte
     elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
         buffer_dtype = ct.c_uint16
+        grabber.stream.set('UnpackingMode', 'Lsb')
     else:
         print('Bit depth {} not usable in display process.'
               .format(cmd_args.bit_depth)
@@ -111,7 +112,7 @@ def main():
     output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
     if cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
         output_filename_stem = \
-            output_filename_stem + 'storedas16bit_'
+            output_filename_stem + 'readas16bit_'
 
     output_number = 0
 
@@ -209,8 +210,6 @@ def main():
                 buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
 
-#            breakpoint()
-
             # Add to stack to save if saving initiated
             if already_saving:
                 buffer_count = buffer_count + 1
@@ -231,7 +230,8 @@ def main():
             # Display images in parallel process via queue
             if time.time() - t_start > \
                     live_view_count * live_view_dt:
-                image_data = buffer_contents[0:image_size * bit_depth_factor]
+                image_data = buffer_contents[0:image_size]
+                # display_queue.put(123)
                 display_queue.put(image_data)
                 live_view_count = live_view_count + 1
 
