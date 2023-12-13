@@ -2,14 +2,14 @@
 
 
 # import cv2
-# import math
 import ctypes as ct
-import sys
+# import sys
 import time
-# import numpy as np
 
 # from math import ceil
 from multiprocessing import Queue, Process
+
+# import numpy as np
 
 from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
@@ -92,20 +92,24 @@ def main():
     # height = cmd_args.roi_height
     # width = cmd_args.roi_width
 
-    # For use of 12-bit data
+    # Reading + unpacking options for 12-bit data
     # 10 to 14-bit buffer is by default unpacked into 16 bits
     # by the Coaxlink frame grabber,
     # aligned to the least significant bit
-    if cmd_args.bit_depth == 8:
-        buffer_dtype = ct.c_ubyte
-    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
-        buffer_dtype = ct.c_uint16
-        grabber.stream.set('UnpackingMode', 'Lsb')
-    else:
-        print('Bit depth {} not usable in display process.'
-              .format(cmd_args.bit_depth)
-              )
-        sys.exit()
+    buffer_dtype = ct.c_uint8
+    grabber.stream.set('UnpackingMode', 'Off')
+    buffer_size = int(buffer_size * cmd_args.bit_depth / 8)
+
+#    if cmd_args.bit_depth == 8:
+#        buffer_dtype = ct.c_ubyte
+#    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+#        buffer_dtype = ct.c_uint16
+#        grabber.stream.set('UnpackingMode', 'Off')
+#    else:
+#        print('Bit depth {} not usable in display process.'
+#              .format(cmd_args.bit_depth)
+#              )
+#        sys.exit()
 
     output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
     if cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
