@@ -3,8 +3,11 @@ with EGrabber Coaxlink interface"""
 
 import sys
 import time
+
 from math import ceil
-import numpy as np
+
+# import numpy as np
+
 from egrabber import EGenTL, EGrabber
 from egrabber import GenTLException
 
@@ -132,8 +135,11 @@ def unscramble_phantom_S710_output(grabber,
     grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
     # LineWidth is in bytes.
-    # 2 bytes for 12-bit acquisition (like p172 of Coaxlink handbook)
-    grabber.stream.set('LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
+    # Unpacking: 2 bytes for 12-bit acquisition
+    # (like p172 of Coaxlink handbook)
+    # grabber.stream.set('LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
+    # No unpacking:
+    grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
 
     # LinePitch = 0 should be default and fine
 
@@ -164,6 +170,7 @@ def create_and_configure_grabber(grabber_settings):
         grabber.remote.set('PixelFormat', 'Mono8')
     if grabber_settings.bit_depth == 12:
         grabber.remote.set('PixelFormat', 'Mono12')
+        grabber.stream.set('UnpackingMode', 'Off')
 
     # Set up grabber stream for unscrambled images,
     # including the right banks

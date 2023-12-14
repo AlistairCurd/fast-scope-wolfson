@@ -3,7 +3,7 @@
 
 # import cv2
 import ctypes as ct
-# import sys
+import sys
 import time
 
 # from math import ceil
@@ -78,7 +78,7 @@ def main():
     # List for measuring speed
     timestamps = []
     # In microseconds, for buffer timestamps, seconds for Python time
-    live_view_dt = 0.2
+    live_view_dt = 0.25
     live_view_count = 1
 
     acquire = True
@@ -86,9 +86,8 @@ def main():
 
     buffer_count = 0
 #    storage_size = 0
-    buffer_size = \
-        images_per_buffer * cmd_args.roi_height * cmd_args.roi_width
     image_size = cmd_args.roi_height * cmd_args.roi_width
+
     # height = cmd_args.roi_height
     # width = cmd_args.roi_width
 
@@ -97,8 +96,17 @@ def main():
     # by the Coaxlink frame grabber,
     # aligned to the least significant bit
     buffer_dtype = ct.c_uint8
-    grabber.stream.set('UnpackingMode', 'Off')
-    buffer_size = int(buffer_size * cmd_args.bit_depth / 8)
+
+    # For storing 12-bit as 8-bit:
+    if cmd_args.bit_depth == 12:
+        if cmd_args.roi_height % 2 != 0 and cmd_args.roi_height % 2 != 0:
+            print('Height and width of ROI must be even numbered.'
+                  '\nTry again.')
+            sys.exit()
+    image_size = int(image_size * cmd_args.bit_depth / 8)
+
+    buffer_size = \
+        images_per_buffer * image_size
 
 #    if cmd_args.bit_depth == 8:
 #        buffer_dtype = ct.c_ubyte
@@ -207,10 +215,11 @@ def main():
                                              INFO_DATATYPE_PTR
                                              )
 
-            # IS THIS RIGHT FOR 12-BIT?
             buffer_contents = ct.cast(
                 buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
+#            buffer_contents = \
+#                (buffer_dtype * buffer_size).from_address(buffer_pointer)
 
             # Add to stack to save if saving initiated
             if already_saving:
