@@ -1,10 +1,12 @@
 """Convert grabber data between data types."""
 
+import ctypes as ct
+# import sys
+
+import cv2
+import numpy as np
 
 from egrabber import BUFFER_INFO_WIDTH, BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET
-import ctypes as ct
-import numpy as np
-import cv2
 
 
 def mono8_to_ndarray(ptr_address, width, height, images_per_buffer=1):
@@ -178,3 +180,44 @@ def build_image_stack_from_queue(inputqueue, outputqueue, save_signal_queue):
         #        outputqueue.put(array_stack, stack_counter)
         #        array_stack = None
         #        stack_counter = stack_counter + 1
+
+
+def readas16bit_uint12packed_in8bitlist(data_in):
+    """Read packed 12-bit uint data that was stored in
+    8-bit format to save file size/time. So two 12-bit values to recover
+    are contained in three consecutive 8-bit values.
+
+    Convert these 12-bit values to 8-bit for display.
+
+    See https://stackoverflow.com/a/51967333/23094281 answer by
+    https://stackoverflow.com/users/6234574/cyrilgaudefroy
+
+    Args:
+        data_in (list of 8-bit values)
+
+    Returns:
+        1D numpy array of 8-bit values, which are the 8 most significant
+        bits if the 12-bit values
+    """
+    # Convert to one row of array per three bytes, as 16-bit:
+    data_in = np.reshape(data_in, (len(data_in) // 3, 3)).astype(np.uint16)
+
+    # Now vectors of first, second and third bytes in each set of three
+    first_byte, second_byte, third_byte = data_in.T
+
+    # Shift bits around into 12-bit values as read as desired bitdepth
+    # Use 8 most significant bits to read as 8-bit for display
+
+    # first_uint12_as8bit = first_byte
+    # full 12-bit v:
+    first_uint12 = (first_byte << 4) + (second_byte >> 4)
+
+    # second_uint12_as8bit = ((second_byte % 16) << 4) + (third_byte >> 4)
+    # full 12-bit v:
+    second_uint12 = ((second_byte % 16) << 8) + third_byte
+
+    # Put first and second 12-bit values in a pair
+    reordered_values = np.vstack((first_uint12, second_uint12)).T
+
+    # Return 1D list
+    return reordered_values.reshape(reordered_values.size)
