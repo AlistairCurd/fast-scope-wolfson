@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
+from convert_display_data import readas16bit_uint12packed_in8bitlist
 from set_grabber_properties import check_input_width_and_height
 
 
@@ -226,15 +227,19 @@ def display_from_buffer_queue_multiprocess(displayqueue,
     scale_factor = 1
 
     if bitdepth == 8:
-        image_dtype = np.uint8
-    elif bitdepth > 8 and bitdepth <= 16:
-        image_dtype = np.uint16
-        scale_values_to_8bit = (2 ** 8 - 1) / (2 ** bitdepth - 1)
+        image_data_dtype = np.uint8
+    elif bitdepth == 12:
+        image_data_dtype = np.uint8
+    elif bitdepth == 16:
+        image_data_dtype = np.uint16
+
     else:
         print('Bit depth {} not usable in display process.'
               .format(bitdepth)
               )
         sys.exit()
+
+    scale_values_to_8bit = (2 ** 8 - 1) / (2 ** bitdepth - 1)
 
     while finished is False:
         if not displayqueue.empty():
@@ -242,13 +247,18 @@ def display_from_buffer_queue_multiprocess(displayqueue,
             if queued_item is None:
                 finished = True
             else:
-                image_data = np.asarray(queued_item, dtype=image_dtype)
-                image_data = image_data.reshape(height, width)
-                # Scale pixel values to 8-bit
+                image_data = np.asarray(queued_item, dtype=image_data_dtype)
+                # Read 12-bit pixel values (scaled to 8-bit) from 8-bit data
+                if bitdepth == 12:
+                    image_data = \
+                        readas16bit_uint12packed_in8bitlist(image_data)
+                # Scale values at higher bit-depths
                 if bitdepth != 8:
                     image_data = np.round(
                         image_data * scale_values_to_8bit
                         ).astype(np.uint8)
+                image_data = image_data.reshape(height, width)
+
                 # Scale image if zoom instruction received
                 if scale_factor == 1:
                     pass
