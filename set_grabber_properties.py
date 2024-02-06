@@ -111,6 +111,7 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
 
 def unscramble_phantom_S710_output(grabber,
                                    roi_width,
+                                   roi_height,
                                    bit_depth=8,
                                    banks='Banks_AB'
                                    ):
@@ -123,8 +124,9 @@ def unscramble_phantom_S710_output(grabber,
     Args:
         grabber (EGrabber object):
             Frame grabber object to set up for acquisition
-        pixelformat (string):
-            Grabber pixel format setting
+        roi_width (int)
+        roi_height (int)
+        bit_depth (int)
         banks (string):
             Grabber banks setting
     """
@@ -142,11 +144,20 @@ def unscramble_phantom_S710_output(grabber,
     grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
 
     # LinePitch = 0 should be default and fine
+    # But try this
+    grabber.stream.set('LinePitch', roi_height * bit_depth / 8)
 
-    grabber.stream.set('StripeHeight', 1)
-    grabber.stream.set('StripePitch', 1)
+    # Worked for one bank
+    grabber.stream.set('StripeHeight', 0)
+    grabber.stream.set('StripePitch', 0)
     grabber.stream.set('BlockHeight', 8)
-    # StripeOffset = 0 should be default and fine
+    grabber.stream.set('StripeOffset', 0)
+
+    # For two banks
+#    grabber.stream.set('StripeHeight', 8)
+#    grabber.stream.set('StripePitch', 16)
+#    grabber.stream.set('BlockHeight', 8)
+#    grabber.stream.set('StripeOffset', 8)
 
     # Adding a pause sometimes helps to allow grabber settings to take effect
     time.sleep(0.1)
@@ -176,6 +187,7 @@ def create_and_configure_grabber(grabber_settings):
     # including the right banks
     unscramble_phantom_S710_output(grabber,
                                    grabber_settings.roi_width,
+                                   grabber_settings.roi_height,
                                    bit_depth=grabber_settings.bit_depth
                                    )
 
