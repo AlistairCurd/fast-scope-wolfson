@@ -153,7 +153,7 @@ def unscramble_phantom_S710_output(grabber,
     grabber.stream.set('BlockHeight', 8)
     grabber.stream.set('StripeOffset', 0)
 
-    # For two banks
+    # For two banks ?
 #    grabber.stream.set('StripeHeight', 8)
 #    grabber.stream.set('StripePitch', 16)
 #    grabber.stream.set('BlockHeight', 8)
@@ -172,12 +172,25 @@ def create_and_configure_grabber(grabber_settings):
     Returns:
         grabber (Egrabber object)
     """
-    # Create grabber
+    # Create and identify grabbers
     gentl = EGenTL()
-    grabber = EGrabber(gentl)
+    grabbers = []
+    for device in range(4):  # Upto max number of "cameras"
+        try:
+            grabbers.append(EGrabber(gentl, 0, device))
+        except GenTLException:
+            break
+
+    print('\n{} frame-grabbers (camera banks) found.'.format(len(grabbers)))
+    # During DEVELOPMENT
+    print('Acquiring with only one, at the moment...')
+
+    # For TESTING
+    grabber = grabbers[0]
 
     # Set bit-depth
     if grabber_settings.bit_depth == 8:
+        # grabber.remote.set('PixelFormat', 'Mono8')
         grabber.remote.set('PixelFormat', 'Mono8')
     if grabber_settings.bit_depth == 12:
         grabber.remote.set('PixelFormat', 'Mono12')

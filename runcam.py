@@ -41,7 +41,7 @@ def main():
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabber
-    print('\nSetting up grabber...')
+    print('\nSetting up grabbers...')
     grabber = create_and_configure_grabber(cmd_args)
 
     # Create queues for
