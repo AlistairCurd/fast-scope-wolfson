@@ -163,7 +163,7 @@ def unscramble_phantom_S710_output(grabber,
     time.sleep(0.1)
 
 
-def create_and_configure_grabber(grabber_settings):
+def create_and_configure_grabbers(grabber_settings):
     """Create Egrabber instance.
 
     Args:
@@ -186,43 +186,45 @@ def create_and_configure_grabber(grabber_settings):
     print('Acquiring with only one, at the moment...')
 
     # For TESTING
-    grabber = grabbers[0]
+    # grabber = grabbers[0]
 
-    # Set bit-depth
-    if grabber_settings.bit_depth == 8:
-        # grabber.remote.set('PixelFormat', 'Mono8')
-        grabber.remote.set('PixelFormat', 'Mono8')
-    if grabber_settings.bit_depth == 12:
-        grabber.remote.set('PixelFormat', 'Mono12')
-        grabber.stream.set('UnpackingMode', 'Off')
+    for grabber in grabbers:
 
-    # Set up grabber stream for unscrambled images,
-    # including the right banks
-    unscramble_phantom_S710_output(grabber,
-                                   grabber_settings.roi_width,
-                                   grabber_settings.roi_height,
-                                   bit_depth=grabber_settings.bit_depth
-                                   )
+        # Set bit-depth
+        if grabber_settings.bit_depth == 8:
+            # grabber.remote.set('PixelFormat', 'Mono8')
+            grabber.remote.set('PixelFormat', 'Mono8')
+        if grabber_settings.bit_depth == 12:
+            grabber.remote.set('PixelFormat', 'Mono12')
+            grabber.stream.set('UnpackingMode', 'Off')
 
-    # Set up ROI
-    set_roi(grabber,
-            width=grabber_settings.roi_width,
-            height=grabber_settings.roi_height
-            )
+        # Set up grabber stream for unscrambled images,
+        # including the right banks
+        unscramble_phantom_S710_output(grabber,
+                                       grabber_settings.roi_width,
+                                       grabber_settings.roi_height,
+                                       bit_depth=grabber_settings.bit_depth
+                                       )
 
-    # Configure fps and exposure time
-    time.sleep(0.5)  # Allow ROI to set
-    grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
-    # time.sleep(0.25)  # Allow fps to set first
-    exp_time_set = False
-    while exp_time_set is False:
-        try:
-            grabber.remote.set('ExposureTime', grabber_settings.exp_time)
-            exp_time_set = True
-        except GenTLException:
-            pass
+        # Set up ROI
+        set_roi(grabber,
+                width=grabber_settings.roi_width,
+                height=grabber_settings.roi_height
+                )
 
-    return grabber
+        # Configure fps and exposure time
+        time.sleep(0.5)  # Allow ROI to set
+        grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
+        # time.sleep(0.25)  # Allow fps to set first
+        exp_time_set = False
+        while exp_time_set is False:
+            try:
+                grabber.remote.set('ExposureTime', grabber_settings.exp_time)
+                exp_time_set = True
+            except GenTLException:
+                pass
+
+    return grabbers
 
 
 def pre_allocate_multipart_buffers(grabber,

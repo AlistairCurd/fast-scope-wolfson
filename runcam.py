@@ -19,7 +19,7 @@ from input_output import display_timings
 from input_output import get_cmd_inputs
 from input_output import set_output_path, display_grabber_settings
 from set_grabber_properties import check_exposure
-from set_grabber_properties import create_and_configure_grabber
+from set_grabber_properties import create_and_configure_grabbers
 from set_grabber_properties import pre_allocate_multipart_buffers
 
 
@@ -40,9 +40,9 @@ def main():
     print('\nOutput will be saved in {}'.format(output_path_parent))
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
-    # Create and configure grabber
+    # Create and configure grabbers
     print('\nSetting up grabbers...')
-    grabber = create_and_configure_grabber(cmd_args)
+    grabbers = create_and_configure_grabbers(cmd_args)
 
     # Create queues for
     # displaying images from buffers
@@ -63,13 +63,14 @@ def main():
 
     # Pre-allocate multi-part buffers and start
     print('\nAllocating buffers...')
-    grabber, images_per_buffer = pre_allocate_multipart_buffers(
-        grabber,
-        images_per_buffer=200,
-        duration_allocated_buffers=0.1,
-        verbose=False
-        )
-    grabber.start()
+    for grabber in grabbers:
+        grabber, images_per_buffer = pre_allocate_multipart_buffers(
+            grabber,
+            images_per_buffer=200,
+            duration_allocated_buffers=0.1,
+            verbose=False
+            )
+        grabber.start()
 
     # Initialise list of buffer pointer addresses
     # Useful if retaining frames in memory to access later
