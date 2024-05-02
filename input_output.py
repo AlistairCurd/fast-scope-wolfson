@@ -14,7 +14,7 @@ from set_grabber_properties import check_input_width_and_height
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
-                   max_height=400,
+                   max_height=800,
                    allowed_bit_depths=[8, 12, 16]
                    ):
     """Get command prompt inputs for acquisition.
