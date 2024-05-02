@@ -59,11 +59,12 @@ def main():
                                     cmd_args.bit_depth
                                     )
                               )
+
     display_process.start()
 
     # Pre-allocate multi-part buffers and start
     print('\nAllocating buffers...')
-    for grabber in grabbers:
+    for grabber in grabbers:  # reversed(grabbers):
         grabber, images_per_buffer = pre_allocate_multipart_buffers(
             grabber,
             images_per_buffer=200,
@@ -87,7 +88,11 @@ def main():
 
     buffer_count = 0
 #    storage_size = 0
+
+    # TESTING with numbanks
     image_size = cmd_args.roi_height * cmd_args.roi_width
+
+#    image_size = cmd_args.roi_height * cmd_args.roi_width
 
     # height = cmd_args.roi_height
     # width = cmd_args.roi_width
@@ -140,7 +145,8 @@ def main():
     t_start = time.time()
     # while t < t_stop:
     while acquire:
-        with Buffer(grabber) as buffer:
+        with Buffer(grabbers[0]) as buffer0:
+            # with Buffer(grabbers[1]) as buffer1:
             # Check for keypress to decide whether to start saving,
             # stop saving or terminate
             # Take appropriate actions in response
@@ -155,7 +161,9 @@ def main():
                         output_path = output_path_parent / output_filename
                         output_file = open(output_path, 'wb')
                         buffer_count = 0
-                        timestamps = [buffer.get_info(cmd=3, info_datatype=8)]
+                        # Timestamp is since the computer started,
+                        # so should match up between grabbers
+                        timestamps = [buffer0.get_info(cmd=3, info_datatype=8)]
 
                         already_saving = True
 
@@ -164,7 +172,7 @@ def main():
                     # there will be an entry in timestamps[]
                     # Include the last timestamp and display timings
                     if len(timestamps) == 1:
-                        timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                        timestamp = buffer0.get_info(cmd=3, info_datatype=8)
                         timestamps.append(timestamp)
                         print('\nTimings of saved file:')
                         display_timings(timestamps,
@@ -191,7 +199,10 @@ def main():
                     # there will be an entry in timestamps[]
                     # Include the last timestamp and display timings
                     if len(timestamps) == 1:
-                        timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                        timestamp = buffer0.get_info(cmd=3, info_datatype=8)
+                        # timestamp = buffer1.get_info(cmd=3, info_datatype=8)
+                        print('Buffer 0 finished: {}'.format(timestamp))
+                        # print('Buffer 1 finished: {}'.format(timestamp))
                         timestamps.append(timestamp)
                         display_timings(timestamps,
                                         buffer_count,
@@ -212,20 +223,29 @@ def main():
                     acquire = False
                     continue
 
-            buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
-                                             INFO_DATATYPE_PTR
-                                             )
+            buffer_pointer0 = buffer0.get_info(BUFFER_INFO_BASE,
+                                               INFO_DATATYPE_PTR
+                                               )
 
-            buffer_contents = ct.cast(
-                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
+            # buffer_pointer1 = buffer1.get_info(BUFFER_INFO_BASE,
+            #                                INFO_DATATYPE_PTR
+            #                                )
+
+            buffer_contents0 = ct.cast(
+                buffer_pointer0, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
+            # buffer_contents1 = ct.cast(
+            #    buffer_pointer1, ct.POINTER(buffer_dtype * buffer_size)
+            #    ).contents
 #            buffer_contents = \
 #                (buffer_dtype * buffer_size).from_address(buffer_pointer)
 
             # Add to stack to save if saving initiated
             if already_saving:
                 buffer_count = buffer_count + 1
-                output_file.write(buffer_contents)
+                output_file.write(buffer_contents0)
+            #   buffer_count = buffer_count + 1
+            #    output_file.write(buffer_contents1)
                 # For saving in chunks - slows acquisition down very slightly
                 # at 86k fps (highest frmae rate tested)
 #                storage_size = storage_size + buffer_size
@@ -242,7 +262,7 @@ def main():
             # Display images in parallel process via queue
             if time.time() - t_start > \
                     live_view_count * live_view_dt:
-                image_data = buffer_contents[0:image_size]
+                image_data = buffer_contents0[0:image_size]
                 # display_queue.put(123)
                 display_queue.put(image_data)
                 live_view_count = live_view_count + 1

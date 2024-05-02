@@ -109,11 +109,10 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
         grabber.remote.set('Height', height)
 
 
-def unscramble_phantom_S710_output(grabber,
+def unscramble_phantom_S710_output(grabbers,
                                    roi_width,
                                    roi_height,
                                    bit_depth=8,
-                                   banks='Banks_AB'
                                    ):
     """Set grabber remote and stream to produce unscrambled images
     from the Phantom S710 middle-outwards reading sequence.
@@ -122,42 +121,37 @@ def unscramble_phantom_S710_output(grabber,
     to use two banks.
 
     Args:
-        grabber (EGrabber object):
-            Frame grabber object to set up for acquisition
+        grabbers (list of EGrabber objects,
+                  length = number of benks in use):
+            List of frame grabber objects to set up for acquisition.
         roi_width (int)
         roi_height (int)
         bit_depth (int)
-        banks (string):
-            Grabber banks setting
     """
-    # Set up the use two banks - although one bank gives full resolution!
-    grabber.remote.set('Banks', banks)  # 2 banks
+    # Set up the streams to unscramble the middle-outwards reading sequence
+    # and ready to combine appropriately
+    for g, grabber in enumerate(grabbers):
 
-    # Set up stream to unscramble the middle-outwards reading sequence
-    grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+        grabber.stream.set('RemoteHeight', roi_height)
 
-    # LineWidth is in bytes.
-    # Unpacking: 2 bytes for 12-bit acquisition
-    # (like p172 of Coaxlink handbook)
-    # grabber.stream.set('LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
-    # No unpacking:
-    grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
+        # Unscrambling
+        grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
-    # LinePitch = 0 should be default and fine
-    # But try this
-    grabber.stream.set('LinePitch', roi_height * bit_depth / 8)
+        # LineWidth and LinePitch are in bytes.
 
-    # Worked for one bank
-    grabber.stream.set('StripeHeight', 0)
-    grabber.stream.set('StripePitch', 0)
-    grabber.stream.set('BlockHeight', 8)
-    grabber.stream.set('StripeOffset', 0)
+        # Unpacking: 2 bytes for 12-bit acquisition
+        # (like p172 of Coaxlink handbook)
+        # grabber.stream.set(
+        #    'LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
 
-    # For two banks ?
-#    grabber.stream.set('StripeHeight', 8)
-#    grabber.stream.set('StripePitch', 16)
-#    grabber.stream.set('BlockHeight', 8)
-#    grabber.stream.set('StripeOffset', 8)
+        # No unpacking:
+        grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
+        grabber.stream.set('LinePitch', roi_width * bit_depth / 8)
+
+        grabber.stream.set('StripeHeight', 8)
+        grabber.stream.set('StripePitch', 8 * len(grabbers))
+        grabber.stream.set('BlockHeight', 8)
+        grabber.stream.set('StripeOffset', 8 * g)
 
     # Adding a pause sometimes helps to allow grabber settings to take effect
     time.sleep(0.1)
@@ -165,6 +159,9 @@ def unscramble_phantom_S710_output(grabber,
 
 def create_and_configure_grabbers(grabber_settings):
     """Create Egrabber instance.
+
+    Note that changing the Remote setting for one bank changes
+    it for all banks (checked it GenICam Browser).
 
     Args:
         grabber_settings, has attributes:
@@ -185,44 +182,70 @@ def create_and_configure_grabbers(grabber_settings):
     # During DEVELOPMENT
     print('Acquiring with only one, at the moment...')
 
-    # For TESTING
-    # grabber = grabbers[0]
+    # "Remote" (camera) settings
+    # Set up to use the number of banks connected
+    if len(grabbers) == 0:
+        print('No camera banks found.\nExiting...\n')
+        sys.exit()
+    if len(grabbers) == 4:
+        grabbers[0].remote.set('Banks', 'Banks_ABCD')  # 4 banks
+    elif len(grabbers) == 2:
+        grabbers[0].remote.set('Banks', 'Banks_AB')  # 2 banks
+    elif len(grabbers) == 1:
+        grabbers[0].remote.set('Banks', 'Banks_A')  # 1 banks
+    else:
+        print('{} camera banks found.').format(len(grabbers))
+        print('Not sure this will work.\nExiting...\n')
 
+    # Set up ROI for Remote, taking account of the no. banks in use
+    set_roi(grabbers[0],
+            width=grabber_settings.roi_width,
+            height=grabber_settings.roi_height / len(grabbers)
+            )
+
+    # Bit-depth of Remote
+    if grabber_settings.bit_depth == 8:
+        grabbers[0].remote.set('PixelFormat', 'Mono8')
+    if grabber_settings.bit_depth == 12:
+        grabbers[0].remote.set('PixelFormat', 'Mono12')
+
+    # Set up streams to contribute correctly to full image
     for grabber in grabbers:
+
+        # To  make use of the banks acquiring separate lines
+        grabber.stream.set('ImageFormatSource', 'DataStream')
 
         # Set bit-depth
         if grabber_settings.bit_depth == 8:
             # grabber.remote.set('PixelFormat', 'Mono8')
-            grabber.remote.set('PixelFormat', 'Mono8')
+            grabber.stream.set('RemotePixelFormat', 'Mono8')
         if grabber_settings.bit_depth == 12:
-            grabber.remote.set('PixelFormat', 'Mono12')
+            # In stream setting, Mono12 is unpacked, Mono12p is packed.
+            # Packing may involved using the UnpackingMode setting rather
+            # than choosing Mono12p, though.
+            grabber.stream.set('RemotePixelFormat', 'Mono12')
             grabber.stream.set('UnpackingMode', 'Off')
 
-        # Set up grabber stream for unscrambled images,
-        # including the right banks
-        unscramble_phantom_S710_output(grabber,
-                                       grabber_settings.roi_width,
-                                       grabber_settings.roi_height,
-                                       bit_depth=grabber_settings.bit_depth
-                                       )
+    # Unscramble from the grabbers (banks),
+    # ready to combine into whole images
+    # time.sleep(0.5)  # Allow ImageFormatSource to set
+    unscramble_phantom_S710_output(grabbers,
+                                   grabber_settings.roi_width,
+                                   grabber_settings.roi_height,
+                                   bit_depth=grabber_settings.bit_depth
+                                   )
 
-        # Set up ROI
-        set_roi(grabber,
-                width=grabber_settings.roi_width,
-                height=grabber_settings.roi_height
-                )
-
-        # Configure fps and exposure time
-        time.sleep(0.5)  # Allow ROI to set
-        grabber.remote.set('AcquisitionFrameRate', grabber_settings.fps)
-        # time.sleep(0.25)  # Allow fps to set first
-        exp_time_set = False
-        while exp_time_set is False:
-            try:
-                grabber.remote.set('ExposureTime', grabber_settings.exp_time)
-                exp_time_set = True
-            except GenTLException:
-                pass
+    # Configure fps and exposure time
+    time.sleep(0.5)  # Allow ROI to set
+    grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
+    # time.sleep(0.25)  # Allow fps to set first
+    exp_time_set = False
+    while exp_time_set is False:
+        try:
+            grabbers[0].remote.set('ExposureTime', grabber_settings.exp_time)
+            exp_time_set = True
+        except GenTLException:
+            pass
 
     return grabbers
 
