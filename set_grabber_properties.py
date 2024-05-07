@@ -236,8 +236,8 @@ def create_and_configure_grabbers(grabber_settings):
                                    )
 
     # Configure fps and exposure time
-    time.sleep(0.5)  # Allow ROI to set
-    grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
+    # time.sleep(0.5)  # Allow ROI to set
+    # grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
     # time.sleep(0.25)  # Allow fps to set first
     exp_time_set = False
     while exp_time_set is False:
@@ -251,6 +251,7 @@ def create_and_configure_grabbers(grabber_settings):
 
 
 def pre_allocate_multipart_buffers(grabber,
+                                   fps,
                                    images_per_buffer=100,
                                    duration_allocated_buffers=0.1,
                                    verbose=False
@@ -265,6 +266,8 @@ def pre_allocate_multipart_buffers(grabber,
     Args:
         grabber (Egrabber object):
             Frame grabber object to give a buffer allocation
+        fps (float):
+            Frame per second in the acquisition.
         images_per_buffer (int):
             Number of images for a multipart buffer to contain (can also be 1).
         fps (float):
@@ -288,7 +291,8 @@ def pre_allocate_multipart_buffers(grabber,
     # but these take too long to allocate for larger fields allowable at
     # lower frame rates
     duration_one_image = \
-        1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
+        1 / fps
+        # 1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
     duration_one_buffer = duration_one_image * images_per_buffer
     num_buffers_to_alloc = ceil(duration_allocated_buffers
                                 / duration_one_buffer

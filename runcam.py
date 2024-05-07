@@ -62,17 +62,26 @@ def main():
 
     display_process.start()
 
-    # Pre-allocate multi-part buffers and start
+    # Pre-allocate multi-part buffer
     print('\nAllocating buffers...')
     for grabber in grabbers:
         grabber, images_per_buffer = pre_allocate_multipart_buffers(
             grabber,
+            cmd_args.fps,
             images_per_buffer=200,
             duration_allocated_buffers=0.1,
             verbose=False
             )
-#    for grabber in reversed(grabbers):
-    for grabber in grabbers:
+
+    # Set triggering
+    grabbers[0].remote.set("TriggerMode", "TriggerModeOn")
+    grabbers[0].remote.set("TriggerSource", "SWTRIGGER")
+    grabbers[0].device.set("CameraControlMethod", "RC")
+    grabbers[0].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)  # in us
+    grabbers[0].device.set("ExposureReadoutOverlap", 1)
+
+    # Start
+    for grabber in reversed(grabbers):
         grabber.start()
 
     # Initialise list of buffer pointer addresses
@@ -80,8 +89,10 @@ def main():
     # ptr_addresses = []
 
     # List for measuring speed
-    timestamps = []
+    timestamps0 = []
+    timestamps1 = []
     # In microseconds, for buffer timestamps, seconds for Python time
+
     live_view_dt = 0.25
     live_view_count = 1
 
@@ -175,7 +186,7 @@ def main():
                         # If saving had been in progress,
                         # there will be an entry in timestamps[]
                         # Include the last timestamp and display timings
-                        if len(timestamps) == 1:
+                        if len(timestamps0) == 1:
                             timestamp0 = buffer0.get_info(cmd=3, info_datatype=8)
                             timestamps0.append(timestamp0)
                             print('\nTimings of saved file:')
