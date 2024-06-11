@@ -130,8 +130,10 @@ def unscramble_phantom_S710_output(grabbers,
     """
     # Set up the streams to unscramble the middle-outwards reading sequence
     # and ready to combine appropriately
+
     for g, grabber in enumerate(grabbers):
 
+        # Not necessary/allowed when working from Remote settings:
         grabber.stream.set('RemoteHeight', roi_height)
 
         # Unscrambling
@@ -217,8 +219,8 @@ def create_and_configure_grabbers(grabber_settings):
 
         # Set bit-depth
         if grabber_settings.bit_depth == 8:
-            # grabber.remote.set('PixelFormat', 'Mono8')
-            grabber.stream.set('RemotePixelFormat', 'Mono8')
+            grabber.remote.set('PixelFormat', 'Mono8')
+            # grabber.stream.set('RemotePixelFormat', 'Mono8')
         if grabber_settings.bit_depth == 12:
             # In stream setting, Mono12 is unpacked, Mono12p is packed.
             # Packing may involved using the UnpackingMode setting rather
@@ -236,9 +238,9 @@ def create_and_configure_grabbers(grabber_settings):
                                    )
 
     # Configure fps and exposure time
-    # time.sleep(0.5)  # Allow ROI to set
-    # grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
-    # time.sleep(0.25)  # Allow fps to set first
+    time.sleep(0.5)  # Allow ROI to set
+    grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
+    time.sleep(0.25)  # Allow fps to set first
     exp_time_set = False
     while exp_time_set is False:
         try:
@@ -290,9 +292,9 @@ def pre_allocate_multipart_buffers(grabber,
     # Need more buffers in the pre-allocation for fast frame rate,
     # but these take too long to allocate for larger fields allowable at
     # lower frame rates
-    duration_one_image = \
-        1 / fps
-        # 1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
+    duration_one_image = 1 / fps
+    # duration_one_image = \
+    #     1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
     duration_one_buffer = duration_one_image * images_per_buffer
     num_buffers_to_alloc = ceil(duration_allocated_buffers
                                 / duration_one_buffer
