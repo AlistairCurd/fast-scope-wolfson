@@ -42,7 +42,9 @@ def main():
 
     # Create and configure grabbers
     print('\nSetting up grabbers...')
-    grabbers = create_and_configure_grabbers(cmd_args)
+    camera, grabbers = create_and_configure_grabbers(cmd_args)
+
+    breakpoint()
 
     # Create queues for
     # displaying images from buffers

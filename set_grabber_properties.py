@@ -8,8 +8,20 @@ from math import ceil
 
 # import numpy as np
 
-from egrabber import EGenTL, EGrabber
+from egrabber import EGenTL
+from egrabber import EGrabberDiscovery
+from egrabber import EGrabber
 from egrabber import GenTLException
+
+
+def plural(n):
+    """Return 's' if integer input 'n' != 1.
+    Return '' otherwise.
+    """
+    if n != 1:
+        return 's'
+    else:
+        return ''
 
 
 def check_input_width_and_height(
@@ -134,7 +146,7 @@ def unscramble_phantom_S710_output(grabbers,
     for g, grabber in enumerate(grabbers):
 
         # Not necessary/allowed when working from Remote settings:
-        grabber.stream.set('RemoteHeight', roi_height)
+        # grabber.stream.set('RemoteHeight', roi_height)
 
         # Unscrambling
         grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
@@ -171,21 +183,40 @@ def create_and_configure_grabbers(grabber_settings):
     Returns:
         grabber (Egrabber object)
     """
-    # Create and identify grabbers
+    # Identify camera
     gentl = EGenTL()
+    discovery = EGrabberDiscovery(gentl)
+    discovery.discover()
+
+    camera_count = len(discovery.cameras)
+    if not camera_count:
+        print('\nNo cameras detected.')
+        sys.exit
+    if camera_count == 1:
+        camera_info = discovery.cameras[0]
+        print('\nUsing {}'.format(camera_info.grabbers[0].deviceModelName))
+
+        grabber_count = len(camera_info.grabbers)
+        print('with {} grabber{}.'.format(grabber_count,
+                                          plural(grabber_count)
+                                          )
+              )
+    if camera_count > 1:
+        print('{} cameras detected. Not developed for more than one camera,'
+              'yet.'
+              )
+
+    # Identify and initiate egrabbers
+    grabber_info = discovery.egrabbers
     grabbers = []
-    for device in range(4):  # Upto max number of "cameras"
+    for device in range(len(grabber_info)):
         try:
-            grabbers.append(EGrabber(gentl, 0, device))
+            grabbers.append(EGrabber(grabber_info[0]))
         except GenTLException:
             break
-
     print('\n{} frame-grabbers (camera banks) found.'.format(len(grabbers)))
-    # During DEVELOPMENT
-    print('Acquiring with only one, at the moment...')
 
-    # "Remote" (camera) settings
-    # Set up to use the number of banks connected
+    # Set "Remote" camera to use the number of banks connected
     if len(grabbers) == 0:
         print('No camera banks found.\nExiting...\n')
         sys.exit()
@@ -199,7 +230,8 @@ def create_and_configure_grabbers(grabber_settings):
         print('{} camera banks found.').format(len(grabbers))
         print('Not sure this will work.\nExiting...\n')
 
-    # Set up ROI for Remote, taking account of the no. banks in use
+    # Set up ROI for Remote according to grabber,
+    # taking account of the no. banks in use
     set_roi(grabbers[0],
             width=grabber_settings.roi_width,
             height=grabber_settings.roi_height / len(grabbers)
@@ -215,7 +247,7 @@ def create_and_configure_grabbers(grabber_settings):
     for grabber in grabbers:
 
         # To  make use of the banks acquiring separate lines
-        grabber.stream.set('ImageFormatSource', 'DataStream')
+        # grabber.stream.set('ImageFormatSource', 'DataStream')
 
         # Set bit-depth
         if grabber_settings.bit_depth == 8:
@@ -237,6 +269,18 @@ def create_and_configure_grabbers(grabber_settings):
                                    bit_depth=grabber_settings.bit_depth
                                    )
 
+    # Set control (synchronisation and triggering) mode
+    for grabber in grabbers:
+        grabber.device.set("CameraControlMethod", "NC")  # NC or RC
+        # Off for NC
+        grabber.remote.set("TriggerMode", "TriggerModeOff")  # ...On or ...Off
+        grabber.remote.set("TriggerSource", "SWTRIGGER")
+
+        # grabbers[0].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)  # in us
+        # grabbers[0].device.set("ExposureReadoutOverlap", 1)
+
+    # NEED TO ADD MASTER AND SLAVE FOR SYNC
+
     # Configure fps and exposure time
     time.sleep(0.5)  # Allow ROI to set
     grabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
@@ -249,7 +293,7 @@ def create_and_configure_grabbers(grabber_settings):
         except GenTLException:
             pass
 
-    return grabbers
+    return camera_info, grabbers
 
 
 def pre_allocate_multipart_buffers(grabber,
