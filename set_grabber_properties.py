@@ -206,7 +206,7 @@ def create_and_configure_grabbers(grabber_settings):
               'yet.'
               )
 
-    # Identify and initiate egrabbers
+    # Identify and initiate egrabbers to change settings
     grabber_info = discovery.egrabbers
     grabbers = []
     for device in range(len(grabber_info)):
@@ -276,7 +276,8 @@ def create_and_configure_grabbers(grabber_settings):
         grabber.remote.set("TriggerMode", "TriggerModeOff")  # ...On or ...Off
         grabber.remote.set("TriggerSource", "SWTRIGGER")
 
-        # grabbers[0].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)  # in us
+        # in us:
+        # grabbers[0].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)
         # grabbers[0].device.set("ExposureReadoutOverlap", 1)
 
     # NEED TO ADD MASTER AND SLAVE FOR SYNC
@@ -293,7 +294,10 @@ def create_and_configure_grabbers(grabber_settings):
         except GenTLException:
             pass
 
-    return camera_info, grabbers
+    # Start unified grabber
+    camgrabber = EGrabber(camera_info)
+
+    return camgrabber, grabbers
 
 
 def pre_allocate_multipart_buffers(grabber,

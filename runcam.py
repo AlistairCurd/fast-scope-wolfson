@@ -42,7 +42,7 @@ def main():
 
     # Create and configure grabbers
     print('\nSetting up grabbers...')
-    camera, grabbers = create_and_configure_grabbers(cmd_args)
+    camgrabber, grabbers = create_and_configure_grabbers(cmd_args)
 
     breakpoint()
 
@@ -76,19 +76,6 @@ def main():
             duration_allocated_buffers=0.1,
             verbose=False
             )
-
-    # Set triggering
-    # grabbers[0].remote.set("TriggerMode", "TriggerModeOn")
-    # grabbers[0].remote.set("TriggerSource", "SWTRIGGER")
-    grabbers[0].device.set("CameraControlMethod", "RC")
-    # grabbers[0].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)  # in us
-    # grabbers[0].device.set("ExposureReadoutOverlap", 1)
-
-#    grabbers[1].remote.set("TriggerMode", "TriggerModeOn")
-#    grabbers[1].remote.set("TriggerSource", "SWTRIGGER")
-    grabbers[1].device.set("CameraControlMethod", "RC")
-#    grabbers[1].device.set("CycleMinimumPeriod", 1e6 / cmd_args.fps)  # in us
-#    grabbers[1].device.set("ExposureReadoutOverlap", 1)
 
     # Start
     for grabber in reversed(grabbers):
