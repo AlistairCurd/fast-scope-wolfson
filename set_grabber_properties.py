@@ -254,15 +254,6 @@ def create_and_configure_grabbers(grabber_settings):
         egrabbers[0].stream.set('RemotePixelFormat', 'Mono12')
         egrabbers[0].stream.set('UnpackingMode', 'Off')
 
-    # Unscramble from the grabbers (banks),
-    # ready to combine into whole images
-    # time.sleep(0.5)  # Allow ImageFormatSource to set
-#    unscramble_phantom_S710_output(grabbers,
-#                                   grabber_settings.roi_width,
-#                                   grabber_settings.roi_height,
-#                                   bit_depth=grabber_settings.bit_depth
-#                                   )
-
     # Set control (synchronisation and triggering) mode
     controlmethod = 'RC'  # NC or RC
 

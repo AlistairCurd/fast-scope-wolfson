@@ -263,6 +263,10 @@ def main():
 #          .format(time.time() - t0)
 #          )
 
+    # Remove output folder of no data saved
+    if not any(output_path_parent.iterdir()):
+        output_path_parent.rmdir()
+
 
 if __name__ == '__main__':
     main()
