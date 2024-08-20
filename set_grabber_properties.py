@@ -282,8 +282,16 @@ def create_and_configure_grabbers(grabber_settings):
             grabber.device.set(
                 'CycleMinimumPeriod', cyclingtime)
             grabber.device.set('ExposureReadoutOverlap', 1)
-        # Need small difference:
-        egrabbers[0].remote.set('ExposureTime', cyclingtime - 0.01)
+        # Set exposure time (max for non-triggering mode)
+        time.sleep(0.25)  # Allow cycling time to set first
+        exp_time_set = False
+        while exp_time_set is False:
+            try:
+                egrabbers[0].remote.set(
+                    'ExposureTime', cyclingtime - 0.01)
+                exp_time_set = True
+            except GenTLException:
+                pass
 
     # Set fps and exposure time if in non-triggered mode
     if controlmethod == 'NC':
