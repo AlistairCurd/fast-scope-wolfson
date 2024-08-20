@@ -207,15 +207,33 @@ def create_and_configure_grabbers(grabber_settings):
               'yet.'
               )
 
-    # Create egrabbers
+    # I think the Banks setting should work automatically with
+    # EGrabberDiscovery.discover(), but just in case, here is something
+    # previously useful:
+    # Set "Remote" camera to use the number of banks connected
+#    if len(grabbers) == 0:
+#        print('No camera banks found.\nExiting...\n')
+#        sys.exit()
+#    if len(grabbers) == 4:
+#        grabbers[0].remote.set('Banks', 'Banks_ABCD')  # 4 banks
+#    elif len(grabbers) == 2:
+#        grabbers[0].remote.set('Banks', 'Banks_AB')  # 2 banks
+#    elif len(grabbers) == 1:
+#        grabbers[0].remote.set('Banks', 'Banks_A')  # 1 banks
+#    else:
+#        print('{} camera banks found.').format(len(grabbers))
+#        print('Not sure this will work.\nExiting...\n')
+
+    # Create egrabbers, one per bank
     grabber_info = discovery.egrabbers
     egrabbers = []
     for grabber_number in range(len(grabber_info)):
         egrabbers.append(EGrabber(grabber_info[grabber_number]))
     print('\n{} frame-grabbers (camera banks) found.'.format(len(egrabbers)))
 
-    # Set up ROI, taking account of the no. banks in use
-    set_roi(egrabbers[0],
+    # Set up ROI shape on the device for a bank,
+    # taking account of the no. banks in use
+    set_roi(egrabbers[0],  # Get applied to the 'remote' for all bank grabbers.
             width=grabber_settings.roi_width,
             # height=grabber_settings.roi_height / len(grabbers)
             height=grabber_settings.roi_height / len(grabber_info)
@@ -226,23 +244,11 @@ def create_and_configure_grabbers(grabber_settings):
         egrabbers[0].remote.set('PixelFormat', 'Mono8')
     if grabber_settings.bit_depth == 12:
         egrabbers[0].remote.set('PixelFormat', 'Mono12')
-
-    # Set up streams to contribute correctly to full image
-#    for grabber in grabbers:
-
-#        # To  make use of the banks acquiring separate lines
-#        # grabber.stream.set('ImageFormatSource', 'DataStream')
-
-#        # Set bit-depth
-#        if grabber_settings.bit_depth == 8:
-#            grabber.remote.set('PixelFormat', 'Mono8')
-#            # grabber.stream.set('RemotePixelFormat', 'Mono8')
-#        if grabber_settings.bit_depth == 12:
-#            # In stream setting, Mono12 is unpacked, Mono12p is packed.
-#            # Packing may involved using the UnpackingMode setting rather
-#            # than choosing Mono12p, though.
-#            grabber.stream.set('RemotePixelFormat', 'Mono12')
-#            grabber.stream.set('UnpackingMode', 'Off')
+        # In stream setting, Mono12 is unpacked, Mono12p is packed.
+        # Packing may involved using the UnpackingMode setting rather
+        # than choosing Mono12p, though.
+        egrabbers[0].stream.set('RemotePixelFormat', 'Mono12')
+        egrabbers[0].stream.set('UnpackingMode', 'Off')
 
     # Unscramble from the grabbers (banks),
     # ready to combine into whole images
@@ -259,15 +265,14 @@ def create_and_configure_grabbers(grabber_settings):
     for grabber in egrabbers:
         grabber.device.set('CameraControlMethod', controlmethod)
 
+    # Set up triggering and timing if in triggered mode
     if controlmethod == 'RC':
         egrabbers[0].remote.set("TriggerMode", "TriggerModeOn")
         egrabbers[0].remote.set("TriggerSource", "SWTRIGGER")
-
-        # in us:
         egrabbers[0].device.set('C2CLinkConfiguration', 'Master')
         egrabbers[1].device.set('C2CLinkConfiguration', 'Slave')
 
-        # Set fps and exposure time in triggered mode
+        # Set fps (cycling time) and exposure time in triggered mode - in us
         cyclingtime = 1e6 / grabber_settings.fps
         for grabber in egrabbers:
             grabber.device.set(
@@ -293,40 +298,26 @@ def create_and_configure_grabbers(grabber_settings):
             except GenTLException:
                 pass
 
-    # Set images per buffer
+    # Set number of images per multipart buffer
     print('\nMultipart buffer setting...')
 
     duration_one_image = 1 / grabber_settings.fps
-    # duration_one_image = \
-    #     1 / grabber.remote.get('AcquisitionFrameRate')  # seconds
     images_per_buffer = 200
     duration_allocated_buffers = 0.1
     duration_one_buffer = duration_one_image * images_per_buffer
     num_buffers_to_alloc = ceil(duration_allocated_buffers
                                 / duration_one_buffer
                                 )
-    # For slower frame rates, do not use the multi-part buffer,
+    # For slower frame rates, do not use the multipart buffer,
     # so that an image from the first buffer is displayed sooner
     if num_buffers_to_alloc == 1:
         images_per_buffer = 1
         num_buffers_to_alloc = 100
 
+    # For each bank grabber, set the multipart buffer up
+    # (before allocating the buffer for the unified camera grabber)
     for egrabber in egrabbers:
         egrabber.stream.set('BufferPartCount', images_per_buffer)
-
-    # Set "Remote" camera to use the number of banks connected
-#    if len(grabbers) == 0:
-#        print('No camera banks found.\nExiting...\n')
-#        sys.exit()
-#    if len(grabbers) == 4:
-#        grabbers[0].remote.set('Banks', 'Banks_ABCD')  # 4 banks
-#    elif len(grabbers) == 2:
-#        grabbers[0].remote.set('Banks', 'Banks_AB')  # 2 banks
-#    elif len(grabbers) == 1:
-#        grabbers[0].remote.set('Banks', 'Banks_A')  # 1 banks
-#    else:
-#        print('{} camera banks found.').format(len(grabbers))
-#        print('Not sure this will work.\nExiting...\n')
 
     # Start unified grabber
     camgrabber = EGrabber(camera_info)
