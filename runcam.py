@@ -69,7 +69,6 @@ def main():
 
     # List for measuring speed
     timestamps0 = []
-#    timestamps1 = []
     # In microseconds, for buffer timestamps, seconds for Python time
 
     live_view_dt = 0.25
@@ -79,12 +78,9 @@ def main():
     already_saving = False
 
     buffer_count = 0
-#    storage_size = 0
 
     # TESTING with numbanks
     image_size = cmd_args.roi_height * cmd_args.roi_width
-
-#    image_size = cmd_args.roi_height * cmd_args.roi_width
 
     # height = cmd_args.roi_height
     # width = cmd_args.roi_width
@@ -128,9 +124,8 @@ def main():
     display_process.start()
 
 #    for grabber in reversed(grabbers):
-#        grabber.start()
+#        grabber.start()  # NOT FOR UNIFIED CAMERA
     camgrabber.start()
-    # egrabbers[0].start()
 
     print('\nAcquiring data...')
     print('\nPress \'t\' to terminate,'
@@ -146,7 +141,6 @@ def main():
     # while t < t_stop:
     while acquire:
         with Buffer(camgrabber) as buffer0:
-            # with Buffer(egrabbers[0]) as buffer0:
             # Check for keypress to decide whether to start saving,
             # stop saving or terminate
             # Take appropriate actions in response
@@ -167,16 +161,10 @@ def main():
                         # See GenTL documentation to index buffer info
                         timestamps0 = \
                             [buffer0.get_info(cmd=3, info_datatype=8)]
-#                        timestamps1 = \
-#                            [buffer1.get_info(cmd=3, info_datatype=8)]
                         print('Buffer 0 started: {}'.format(timestamps0))
-#                        print('Buffer 1 started: {}'.format(timestamps1))
                         frame_start0 = \
                             buffer0.get_info(cmd=16, info_datatype=8)
-#                        frame_start1 = \
-#                            buffer1.get_info(cmd=16, info_datatype=8)
                         print('Buffer 0 on frame {}'.format(frame_start0))
-#                        print('Buffer 1 on frame {}'.format(frame_start1))
                         already_saving = True
 
                 elif save_instruction == 'preview':
@@ -247,16 +235,9 @@ def main():
                                                INFO_DATATYPE_PTR
                                                )
 
-#            buffer_pointer1 = buffer1.get_info(BUFFER_INFO_BASE,
-#                                                INFO_DATATYPE_PTR
-#                                                )
-
             buffer_contents0 = ct.cast(
                 buffer_pointer0, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
-#            buffer_contents1 = ct.cast(
-#                buffer_pointer1, ct.POINTER(buffer_dtype * buffer_size)
-#                ).contents
 
 #            buffer_contents = \
 #                (buffer_dtype * buffer_size).from_address(buffer_pointer)
@@ -266,28 +247,12 @@ def main():
                 buffer_count = buffer_count + 1
                 output_file.write(buffer_contents0)
 
-            #   buffer_count = buffer_count + 1
-#                output_file.write(buffer_contents1)
-                # For saving in chunks
-                # - slows acquisition down very slightly
-                # at 86k fps (highest frmae rate tested)
-#                storage_size = storage_size + buffer_size
-#                if storage_size > 1e10:
-#                    output_file.close()
-#                    output_number = output_number + 1
-#                    storage_size = 0
-#                    output_file = open(
-#                        output_path / (output_filename
-#                                       + repr(output_number)
-#                                       ), 'wb'
-#                        )
-
             # Display images in parallel process via queue
             if time.time() - t_start > \
                     live_view_count * live_view_dt:
                 image_data = buffer_contents0[0:image_size]
                 display_queue.put(image_data)
-#                    display_queue.put(dummy_image_data)
+                # display_queue.put(dummy_image_data)
                 live_view_count = live_view_count + 1
 
     # Stop processes and empty queues if necessary

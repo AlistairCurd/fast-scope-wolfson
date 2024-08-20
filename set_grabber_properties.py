@@ -302,7 +302,7 @@ def create_and_configure_grabbers(grabber_settings):
                 pass
 
     # Set number of images per multipart buffer
-    print('\nMultipart buffer setting...')
+    print('\nSetting up buffer...')
 
     duration_one_image = 1 / grabber_settings.fps
     images_per_buffer = 200
@@ -323,13 +323,11 @@ def create_and_configure_grabbers(grabber_settings):
         egrabber.stream.set('BufferPartCount', images_per_buffer)
 
     # Allocate buffer
-    print('\nMultipart buffer setting...')
-
-    t_alloc_start = time.time()
+    # t_alloc_start = time.time()
     camgrabber.realloc_buffers(num_buffers_to_alloc)
-    print('Buffer allocation took {} s.'
-          .format(time.time() - t_alloc_start)
-          )
+    # print('Buffer allocation took {} s.'
+    #      .format(time.time() - t_alloc_start)
+    #      )
 
     return camgrabber, egrabbers, images_per_buffer
 
