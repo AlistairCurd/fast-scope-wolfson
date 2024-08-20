@@ -160,7 +160,7 @@ def unscramble_phantom_S710_output(grabbers,
 
         # No unpacking:
         grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
-        grabber.stream.set('LinePitch', roi_width * bit_depth / 8)
+        grabber.stream.set('LinePitch', roi_width * bit_depth / 8)  # or 0
 
         grabber.stream.set('StripeHeight', 8)
         grabber.stream.set('StripePitch', 8 * len(grabbers))
