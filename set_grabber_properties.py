@@ -207,6 +207,9 @@ def create_and_configure_grabbers(grabber_settings):
               'yet.'
               )
 
+    # START UNIFIED CAMERA EGRABBER
+    camgrabber = EGrabber(camera_info)
+
     # I think the Banks setting should work automatically with
     # EGrabberDiscovery.discover(), but just in case, here is something
     # previously useful:
@@ -224,7 +227,7 @@ def create_and_configure_grabbers(grabber_settings):
 #        print('{} camera banks found.').format(len(grabbers))
 #        print('Not sure this will work.\nExiting...\n')
 
-    # Create egrabbers, one per bank
+    # CREATE EGRABBERS PER BANK
     grabber_info = discovery.egrabbers
     egrabbers = []
     for grabber_number in range(len(grabber_info)):
@@ -318,9 +321,6 @@ def create_and_configure_grabbers(grabber_settings):
     # (before allocating the buffer for the unified camera grabber)
     for egrabber in egrabbers:
         egrabber.stream.set('BufferPartCount', images_per_buffer)
-
-    # Start unified grabber
-    camgrabber = EGrabber(camera_info)
 
     # Allocate buffer
     print('\nMultipart buffer setting...')
