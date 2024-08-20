@@ -275,7 +275,8 @@ def create_and_configure_grabbers(grabber_settings):
         egrabbers[0].device.set('C2CLinkConfiguration', 'Master')
         egrabbers[1].device.set('C2CLinkConfiguration', 'Slave')
 
-        # Set fps (cycling time) and exposure time in triggered mode - in us
+        # Set fps (cycling time) and max exposure time in triggered mode
+        # in us
         cyclingtime = 1e6 / grabber_settings.fps
         for grabber in egrabbers:
             grabber.device.set(
@@ -290,13 +291,13 @@ def create_and_configure_grabbers(grabber_settings):
         egrabbers[0].remote.set("TriggerMode", "TriggerModeOff")
         egrabbers[0].remote.set('AcquisitionFrameRate', grabber_settings.fps)
 
-        # Set exposure time
+        # Set exposure time (max for non-triggering mode)
         time.sleep(0.25)  # Allow fps to set first
         exp_time_set = False
         while exp_time_set is False:
             try:
                 egrabbers[0].remote.set(
-                    'ExposureTime', grabber_settings.exp_time)
+                    'ExposureTime', 1e6 / grabber_settings.fps - 0.45)
                 exp_time_set = True
             except GenTLException:
                 pass

@@ -18,22 +18,12 @@ from input_output import display_from_buffer_queue_multiprocess
 from input_output import display_timings
 from input_output import get_cmd_inputs
 from input_output import set_output_path, display_grabber_settings
-from set_grabber_properties import check_exposure
 from set_grabber_properties import create_and_configure_grabbers
-# from set_grabber_properties import pre_allocate_multipart_buffers
 
 
 def main():
     # Get script arguments
     cmd_args = get_cmd_inputs()
-
-    # Make sure exposure time setting will be less than cycling time
-    # Choose if not given
-    cmd_args.exp_time = check_exposure(cmd_args.fps, cmd_args.exp_time)
-
-    # Display settings
-    print('\nAcquisition settings:')
-    display_grabber_settings(cmd_args)
 
     # Set up saving location and filename length
     output_path_parent = set_output_path()
@@ -44,6 +34,10 @@ def main():
     print('\nSetting up grabbers...')
     camgrabber, egrabbers, images_per_buffer = \
         create_and_configure_grabbers(cmd_args)
+
+    # Display settings
+    print('\nAcquisition settings:')
+    display_grabber_settings(cmd_args, egrabbers[0])
 
     # Create queues for
     # displaying images from buffers
@@ -204,12 +198,8 @@ def main():
                     if len(timestamps0) == 1:
                         timestamp0 = \
                             buffer0.get_info(cmd=3, info_datatype=8)
-#                        timestamp1 = \
-#                            buffer1.get_info(cmd=3, info_datatype=8)
                         print('Buffer 0 finished: {}'.format(timestamp0))
-#                        print('Buffer 1 finished: {}'.format(timestamp1))
                         timestamps0.append(timestamp0)
-#                        timestamps1.append(timestamp1)
                         display_timings(timestamps0,
                                         buffer_count,
                                         images_per_buffer

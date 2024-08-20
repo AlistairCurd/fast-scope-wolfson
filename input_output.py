@@ -48,13 +48,13 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         help='Frame rate (frames per second).'
                         )
 
-    parser.add_argument('-x', '--exposure',
-                        dest='exp_time',
-                        type=int,
-                        help='Exposure time (microseconds).'
-                        ' Must be an integer <= floor(1e6 / fps - 0.001).'
-                        ' Set to this by default.'
-                        )
+#    parser.add_argument('-x', '--exposure',
+#                        dest='exp_time',
+#                        type=int,
+#                        help='Exposure time (microseconds).'
+#                        ' Must be an integer <= floor(1e6 / fps - 0.001).'
+#                        ' Set to this by default.'
+#                        )
 
     parser.add_argument('-W', '--width',
                         dest='roi_width',
@@ -306,18 +306,20 @@ def display_from_buffer_queue_multiprocess(displayqueue,
     cv2.destroyAllWindows()
 
 
-def display_grabber_settings(grabber_settings):
+def display_grabber_settings(grabber_settings, egrabber):
     """Print grabber settings to screen.
 
     Args:
         grabber_settings (object):
             An object containing the settings to display.
+        egrabber (EGrabber):
+            An egrabber initialised for one bank of the camera.
     """
     if hasattr(grabber_settings, 'n_frames'):
         print('\nNumber of frames : {}'.format(grabber_settings.n_frames))
     print('Frames per second : {:.1f}'.format(grabber_settings.fps))
     print('Cycling time : {:.3f}'.format(1e6 / grabber_settings.fps), 'us')
-    print('Exposure time :', grabber_settings.exp_time, 'us')
+    print('Exposure time :', egrabber.remote.get('ExposureTime'), 'us')
     print('Image width: ', grabber_settings.roi_width)
     print('Image height: ', grabber_settings.roi_height)
     print('Bit depth of pixel: ', grabber_settings.bit_depth)
