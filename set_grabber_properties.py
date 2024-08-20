@@ -195,13 +195,14 @@ def create_and_configure_grabbers(grabber_settings):
         sys.exit
     if camera_count == 1:
         camera_info = discovery.cameras[0]
-        print('\nUsing {}'.format(camera_info.grabbers[0].deviceModelName))
+        print('\nUsing one {}'.format(camera_info.grabbers[0].deviceModelName))
 
-        grabber_count = len(camera_info.grabbers)
-        print('with {} grabber{}.'.format(grabber_count,
-                                          plural(grabber_count)
-                                          )
-              )
+        # grabber_count = len(camera_info.grabbers)
+        # print('with {} grabber{}.'.format(grabber_count,
+        #                                   plural(grabber_count)
+        #                                   )
+        #      )
+
     if camera_count > 1:
         print('{} cameras detected. Not developed for more than one camera,'
               'yet.'
@@ -232,7 +233,7 @@ def create_and_configure_grabbers(grabber_settings):
     egrabbers = []
     for grabber_number in range(len(grabber_info)):
         egrabbers.append(EGrabber(grabber_info[grabber_number]))
-    print('\n{} frame-grabbers (camera banks) found.'.format(len(egrabbers)))
+    print('\n{} frame-grabbers (camera banks) found'.format(len(egrabbers)))
 
     # Set up ROI shape on the device for a bank,
     # taking account of the no. banks in use

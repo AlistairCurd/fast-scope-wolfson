@@ -31,7 +31,7 @@ def main():
     # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabbers
-    print('\nSetting up grabbers...')
+    # print('\nSetting up grabbers...')
     camgrabber, egrabbers, images_per_buffer = \
         create_and_configure_grabbers(cmd_args)
 
