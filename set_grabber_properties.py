@@ -251,8 +251,11 @@ def create_and_configure_grabbers(grabber_settings):
         # In stream setting, Mono12 is unpacked, Mono12p is packed.
         # Packing may involved using the UnpackingMode setting rather
         # than choosing Mono12p, though.
-        egrabbers[0].stream.set('RemotePixelFormat', 'Mono12')
-        egrabbers[0].stream.set('UnpackingMode', 'Off')
+        # egrabbers[0].stream.set('RemotePixelFormat', 'Mono12')
+        # If unpacked (reading as 16-bit)
+        egrabbers[0].stream.set('UnpackingMode', 'Lsb')
+        # If packed
+        # egrabbers[0].stream.set('UnpackingMode', 'Off')
 
     # Set control (synchronisation and triggering) mode
     controlmethod = 'RC'  # NC or RC

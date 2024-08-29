@@ -83,7 +83,7 @@ def main():
     # 10 to 14-bit buffer is by default unpacked into 16 bits
     # by the Coaxlink frame grabber,
     # aligned to the least significant bit
-    buffer_dtype = ct.c_uint8
+    # buffer_dtype = ct.c_uint8
 
     # For storing 12-bit as 8-bit:
     if cmd_args.bit_depth == 12:
@@ -91,21 +91,21 @@ def main():
             print('Height and width of ROI must be even numbered.'
                   '\nTry again.')
             sys.exit()
-    image_size = int(image_size * cmd_args.bit_depth / 8)
+    # image_size = int(image_size * cmd_args.bit_depth / 8)
+
+    if cmd_args.bit_depth == 8:
+        buffer_dtype = ct.c_ubyte
+    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+        buffer_dtype = ct.c_uint16
+    #    grabber.stream.set('UnpackingMode', 'Off')
+    else:
+        print('Bit depth {} not usable in display process.'
+              .format(cmd_args.bit_depth)
+              )
+        sys.exit()
 
     buffer_size = \
         images_per_buffer * image_size
-
-#    if cmd_args.bit_depth == 8:
-#        buffer_dtype = ct.c_ubyte
-#    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
-#        buffer_dtype = ct.c_uint16
-#        grabber.stream.set('UnpackingMode', 'Off')
-#    else:
-#        print('Bit depth {} not usable in display process.'
-#              .format(cmd_args.bit_depth)
-#              )
-#        sys.exit()
 
     output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
     if cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
@@ -228,6 +228,7 @@ def main():
             buffer_contents = ct.cast(
                 buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
                 ).contents
+
 
 #            buffer_contents = \
 #                (buffer_dtype * buffer_size).from_address(buffer_pointer)

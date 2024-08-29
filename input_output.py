@@ -229,7 +229,8 @@ def display_from_buffer_queue_multiprocess(displayqueue,
     if bitdepth == 8:
         image_data_dtype = np.uint8
     elif bitdepth == 12:
-        image_data_dtype = np.uint8
+        # image_data_dtype = np.uint8  # Packed
+        image_data_dtype = np.uint16  # Unpacked
     elif bitdepth == 16:
         image_data_dtype = np.uint16
 
@@ -248,10 +249,11 @@ def display_from_buffer_queue_multiprocess(displayqueue,
                 finished = True
             else:
                 image_data = np.asarray(queued_item, dtype=image_data_dtype)
-                # Read 12-bit pixel values (scaled to 8-bit) from 8-bit data
-                if bitdepth == 12:
-                    image_data = \
-                        readas16bit_uint12packed_in8bitlist(image_data)
+                # Read 12-bit pixel values (scaled to 8-bit)
+                # if bitdepth == 12:
+                    # For packed:
+                    # image_data = \
+                    #    readas16bit_uint12packed_in8bitlist(image_data)
                 # Scale values at higher bit-depths
                 if bitdepth != 8:
                     image_data = np.round(
