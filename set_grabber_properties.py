@@ -280,7 +280,7 @@ def create_and_configure_grabbers(grabber_settings):
         while exp_time_set is False:
             try:
                 egrabbers[0].remote.set(
-                    'ExposureTime', cyclingtime - 0.01)
+                    'ExposureTime', cyclingtime - 0.45)
                 exp_time_set = True
             except GenTLException:
                 pass
