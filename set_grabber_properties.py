@@ -269,6 +269,7 @@ def create_and_configure_grabbers(grabber_settings):
 
         # Set fps (cycling time) and max exposure time in triggered mode
         # in us
+        time.sleep(0.5)  # Allow ROI to set
         cyclingtime = 1e6 / grabber_settings.fps
         for grabber in egrabbers:
             grabber.device.set(
