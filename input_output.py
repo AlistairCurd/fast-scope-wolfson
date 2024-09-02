@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from convert_display_data import readas16bit_uint12packed_in8bitlist
+# from convert_display_data import readas16bit_uint12packed_in8bitlist
 from set_grabber_properties import check_input_width_and_height
 
 
@@ -15,7 +15,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                                        1024, 1152, 1280
                                        ],
                    max_height=800,
-                   allowed_bit_depths=[8, 12, 16]
+                   allowed_bit_depths=[8, 12]
                    ):
     """Get command prompt inputs for acquisition.
 
@@ -231,8 +231,6 @@ def display_from_buffer_queue_multiprocess(displayqueue,
     elif bitdepth == 12:
         # image_data_dtype = np.uint8  # Packed
         image_data_dtype = np.uint16  # Unpacked
-    elif bitdepth == 16:
-        image_data_dtype = np.uint16
 
     else:
         print('Bit depth {} not usable in display process.'
@@ -250,12 +248,11 @@ def display_from_buffer_queue_multiprocess(displayqueue,
             else:
                 image_data = np.asarray(queued_item, dtype=image_data_dtype)
                 # Read 12-bit pixel values (scaled to 8-bit)
-                # if bitdepth == 12:
+                if bitdepth == 12:
                     # For packed:
                     # image_data = \
                     #    readas16bit_uint12packed_in8bitlist(image_data)
-                # Scale values at higher bit-depths
-                if bitdepth != 8:
+                    # Scale values to 8-bit
                     image_data = np.round(
                         image_data * scale_values_to_8bit
                         ).astype(np.uint8)
