@@ -95,9 +95,10 @@ def main():
 
     if cmd_args.bit_depth == 8:
         buffer_dtype = ct.c_ubyte
-    elif cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+    elif cmd_args.bit_depth == 12:
+        # 16-bit buffer elements for unpacking
         buffer_dtype = ct.c_uint16
-    #    grabber.stream.set('UnpackingMode', 'Off')
+        # ADD 8-bit in for PACKING 12-bit data
     else:
         print('Bit depth {} not usable in display process.'
               .format(cmd_args.bit_depth)
@@ -107,8 +108,11 @@ def main():
     buffer_size = \
         images_per_buffer * image_size
 
+    # Add bit depth and reading info to filename
     output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
-    if cmd_args.bit_depth > 8 and cmd_args.bit_depth <= 16:
+    if cmd_args.bit_depth == 12 and \
+            egrabbers[0].stream.get('UnpackingMode') != 'Off':
+
         output_filename_stem = \
             output_filename_stem + 'readas16bit_'
 
@@ -225,13 +229,12 @@ def main():
                                              INFO_DATATYPE_PTR
                                              )
 
-            buffer_contents = ct.cast(
-                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
-                ).contents
+#            buffer_contents = ct.cast(
+#                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
+#                ).contents
 
-
-#            buffer_contents = \
-#                (buffer_dtype * buffer_size).from_address(buffer_pointer)
+            buffer_contents = \
+                (buffer_dtype * buffer_size).from_address(buffer_pointer)
 
             # Add to stack to save if saving initiated
             if already_saving:
