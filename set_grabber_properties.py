@@ -123,7 +123,6 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
 
 def unscramble_phantom_S710_output(grabbers,
                                    roi_width,
-                                   roi_height,
                                    bit_depth=8,
                                    ):
     """Set grabber remote and stream to produce unscrambled images
@@ -159,8 +158,8 @@ def unscramble_phantom_S710_output(grabbers,
         #    'LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
 
         # No unpacking:
-        grabber.stream.set('LineWidth', roi_width * bit_depth / 8)
-        grabber.stream.set('LinePitch', roi_width * bit_depth / 8)  # or 0
+        grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
+        grabber.stream.set('LinePitch', 0)
 
         grabber.stream.set('StripeHeight', 8)
         grabber.stream.set('StripePitch', 8 * len(grabbers))
@@ -253,7 +252,8 @@ def create_and_configure_grabbers(grabber_settings):
         # than choosing Mono12p, though.
         # egrabbers[0].stream.set('RemotePixelFormat', 'Mono12')
         # If unpacked (reading as 16-bit)
-        egrabbers[0].stream.set('UnpackingMode', 'Lsb')
+        for grabber in egrabbers:
+            grabber.stream.set('UnpackingMode', 'Lsb')
         # If packed
         # egrabbers[0].stream.set('UnpackingMode', 'Off')
 
