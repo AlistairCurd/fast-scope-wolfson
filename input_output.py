@@ -82,6 +82,21 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         .format(allowed_bit_depths)
                         )
 
+    parser.add_argument('-t', '--trigger-level',
+                        dest='trigger_level',
+                        type=int,
+                        default=0,
+                        help='Pixel level at which to trigger saving.'
+                        )
+
+    parser.add_argument('-l', '--seq-length',
+                        dest='seq_length',
+                        type=int,
+                        default=1e15,
+                        help='Maximum sequence length to save, '
+                        'for use with triggered sequences.'
+                        )
+
     args = parser.parse_args()
 
     # Check ROI width and height.
