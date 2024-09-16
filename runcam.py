@@ -28,7 +28,7 @@ def main():
     # Set up saving location and filename length
     output_path_parent = set_output_path()
     print('\nOutput will be saved in {}'.format(output_path_parent))
-    # len_frame_number = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
+    # len_frame_countber = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabbers
     # print('\nSetting up grabbers...')
@@ -144,8 +144,61 @@ def main():
     # while t < t_stop:
     while acquire:
         with Buffer(camgrabber) as buffer:
-            # Check for keypress to decide whether to start saving,
-            # stop saving or terminate
+            # The data is here
+            buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
+                                             INFO_DATATYPE_PTR
+                                             )
+
+            # The pixel values are this list
+            buffer_contents = \
+                (buffer_dtype * buffer_size).from_address(buffer_pointer)
+
+#           # Alternative pixel value collection
+#            buffer_contents = ct.cast(
+#                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
+#                ).contents
+
+            # Add to stack to save if saving initiated
+            # This is only true after 'save' message is found below in
+            # instruct_queue, at the moment.
+            if enable_saving:
+                if not triggered:
+                    triggered = (max(buffer_contents) > trig_level)
+                    if triggered:
+                        frame_count = 0
+                        buffer_count = 0
+                        output_filename = '{}{}_H{}_W{}_'.format(
+                            output_filename_stem, output_number,
+                            cmd_args.roi_height, cmd_args.roi_width
+                            )
+                        output_path = output_path_parent / output_filename
+                        output_file = open(output_path, 'wb')
+                        timestamps = []
+                else:
+                    # Get first timestamp
+                    if not frame_count:
+                        timestamps.append(
+                            buffer.get_info(cmd=3, info_datatype=8))
+                    # Write the data for the sequence length
+                    # (if not interrupted)
+                    if frame_count < seq_len:
+                        output_file.write(buffer_contents)
+                        frame_count += images_per_buffer
+                        buffer_count = buffer_count + 1
+                    else:  # Finish
+                        triggered = False
+                        output_file.close()
+                        final_filename = '{}{}images'.format(
+                            output_filename, frame_count)
+                        output_path.rename(output_path_parent / final_filename)
+                        output_number = output_number + 1
+                    # Get the last timestamp
+                    if frame_count == (seq_len - 1):
+                        timestamps.append(
+                            buffer.get_info(cmd=3, info_datatype=8))
+
+            # Check for keypress to decide whether to enable saving,
+            # go to preview mode or terminate
             # Take appropriate actions in response
             if not instruct_queue.empty():
                 # Giving 'save', 'preview' or 'terminate'
@@ -153,21 +206,6 @@ def main():
 
                 if save_instruction == 'save':
                     if not enable_saving:
-                        output_filename = \
-                            output_filename_stem + \
-                            repr(output_number) + '_'
-                        output_path = output_path_parent / output_filename
-                        output_file = open(output_path, 'wb')
-                        buffer_count = 0
-                        # Timestamp is since the computer started,
-                        # so should match up between grabbers
-                        # See GenTL documentation to index buffer info
-                        timestamps = \
-                            [buffer.get_info(cmd=3, info_datatype=8)]
-                        print('Buffer started: {}'.format(timestamps))
-                        frame_start = \
-                            buffer.get_info(cmd=16, info_datatype=8)
-                        print('Buffer on frame {}'.format(frame_start))
                         enable_saving = True
 
                 elif save_instruction == 'preview':
@@ -180,25 +218,20 @@ def main():
                         timestamps.append(timestamp)
                         print('\nTimings of saved file:')
                         display_timings(timestamps,
-                                        buffer_count,
+                                        frame_count,
                                         images_per_buffer
                                         )
-
-                        output_file.close()
-
-                        # Rename to add more info on contents
-                        final_filename = \
-                            output_filename + '{}images_H{}_W{}'.format(
-                                buffer_count * images_per_buffer,
-                                cmd_args.roi_height,
-                                cmd_args.roi_width
-                                )
-                        output_path.rename(output_path_parent /
-                                           final_filename
-                                           )
+                        if not output_file.closed:
+                            output_file.close()
+                            final_filename = '{}{}images'.format(
+                                output_filename, frame_count)
+                            output_path.rename(
+                                output_path_parent / final_filename)
 
                         output_number = output_number + 1
-                        enable_saving = False
+
+                    enable_saving = False
+                    triggered = False
 
                 elif save_instruction == 'terminate':
                     # If saving had been in progress,
@@ -210,50 +243,19 @@ def main():
                         print('Buffer finished: {}'.format(timestamp))
                         timestamps.append(timestamp)
                         display_timings(timestamps,
-                                        buffer_count,
+                                        frame_count,
                                         images_per_buffer
                                         )
-                        output_file.close()
-
-                        # Rename to add more info on contents
-                        final_filename = \
-                            output_filename + '{}images_H{}_W{}'.format(
-                                buffer_count * images_per_buffer,
-                                cmd_args.roi_height,
-                                cmd_args.roi_width
-                                )
-                        output_path.rename(output_path_parent /
-                                           final_filename
-                                           )
+                        if not output_file.closed:
+                            output_file.close()
+                            final_filename = '{}{}images'.format(
+                                output_filename, frame_count)
+                            output_path.rename(
+                                output_path_parent / final_filename)
 
                     enable_saving = False
                     acquire = False
                     continue
-
-            buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
-                                             INFO_DATATYPE_PTR
-                                             )
-
-#            buffer_contents = ct.cast(
-#                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
-#                ).contents
-
-            buffer_contents = \
-                (buffer_dtype * buffer_size).from_address(buffer_pointer)
-
-            # Add to stack to save if saving initiated
-            if enable_saving:
-                if not triggered:
-                    triggered = (max(buffer_contents) > trig_level)
-                    frame_num = 0
-                    buffer_count = 0
-                else:
-                    if frame_num < seq_len:
-                        output_file.write(buffer_contents)
-                        frame_num += images_per_buffer
-                        buffer_count = buffer_count + 1
-                    else:
-                        triggered = False
 
             # Display images in parallel process via queue
             if time.time() - t_start > \
