@@ -233,7 +233,7 @@ def display_from_buffer_queue_multiprocess(displayqueue,
                     finished = True  # Will leave while loop
                 elif keypress == ord('s'):
                     instructqueue.put('save')
-                    print('\nSaving images...')
+                    print('\nSaving enabled...')
                 elif keypress == ord('p'):
                     instructqueue.put('preview')
                     print('\nIn preview mode, not saving data...')
@@ -267,7 +267,7 @@ def display_grabber_settings(grabber_settings, egrabber):
     print('Bit depth of pixel: ', grabber_settings.bit_depth)
 
 
-def display_timings(timestamps, buffer_count, images_per_buffer):
+def display_timings(timestamps, frame_count, images_per_buffer):
     """Display information about acquisition timings.
 
     Args:
@@ -275,34 +275,40 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
             Timestamps in microseconds of acquired buffers.
             Should contain at least the timestamps
             of the first and last buffers.
-        buffer_count (int):
-            The number of buffers acquired in the sequence.
+        frame_count (int):
+            The number of frames acquired in the sequence.
         images_per_buffer (int):
             The number of images acquired per buffer.
     """
     timestamp_range = timestamps[-1] - timestamps[0]
-    print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
-    print('Timestamp at buffer {}: {} us'
-          .format(buffer_count, timestamps[-1])
-          )
-    print('Time between first and last timestamps: {} us'
-          .format(timestamp_range)
-          )
-    # Use buffer_count - 1 as divisor to calculate timings,
-    # as we have first and last timestamps, no timestamp before acquiring
-    # the first buffer
-    print('Time per buffer acquisition: {:.1f} us'
-          .format(timestamp_range / (buffer_count - 1))
-          )
-    print('Acquired {} frames per buffer'.format(images_per_buffer))
-    print('Time per frame: {:.3f} us'
-          .format(timestamp_range
-                  / ((buffer_count - 1) * images_per_buffer)
-                  )
-          )
+    buffer_count = frame_count / images_per_buffer
 
-    print('Acquired {} frames in total over {:.1f} s.'
-          .format(buffer_count * images_per_buffer,
-                  timestamp_range * (1 + 1 / (buffer_count - 1)) / 1e6
-                  )
-          )
+    if buffer_count > 1:
+        print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
+        print('Timestamp at buffer {}: {} us'
+              .format(buffer_count, timestamps[-1])
+              )
+        print('Time between first and last timestamps: {} us'
+              .format(timestamp_range)
+              )
+        # Use buffer_count - 1 as divisor to estimate timings,
+        # as we have first and last timestamps, no timestamp before acquiring
+        # the first buffer
+        print('Time per buffer acquisition: {:.1f} us'
+              .format(timestamp_range / (buffer_count - 1))
+              )
+        print('Acquired {} frames per buffer'.format(images_per_buffer))
+        print('Time per frame: {:.3f} us'
+              .format(timestamp_range
+                      / ((buffer_count - 1) * images_per_buffer)
+                      )
+              )
+
+        print('Acquired {} frames in total over {:.1f} s.'
+              .format(buffer_count * images_per_buffer,
+                      timestamp_range * (1 + 1 / (buffer_count - 1)) / 1e6
+                      )
+              )
+    elif buffer_count == 1:
+        print('\nOnly one buffer obtained, containing {} frames.')
+        print('\nNo information available on acquisition rate.')
