@@ -281,7 +281,7 @@ def display_timings(timestamps, frame_count, images_per_buffer):
             The number of images acquired per buffer.
     """
     timestamp_range = timestamps[-1] - timestamps[0]
-    buffer_count = frame_count / images_per_buffer
+    buffer_count = int(frame_count / images_per_buffer)
 
     if buffer_count > 1:
         print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
@@ -312,5 +312,5 @@ def display_timings(timestamps, frame_count, images_per_buffer):
     elif buffer_count == 1:
         print('\nOnly one buffer obtained, containing {} frames.'
               .format(images_per_buffer)
-            )
+              )
         print('\nNo information available on acquisition rate.')
