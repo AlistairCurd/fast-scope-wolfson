@@ -163,8 +163,8 @@ def main():
             # instruct_queue, at the moment.
             if enable_saving:
                 if not triggered:
-                    triggered = (max(buffer_contents) > trig_level)
-                    if triggered:
+                    if buffer_contents[0] > trig_level:
+                        triggered = True
                         frame_count = 0
                         buffer_count = 0
                         output_filename = '{}{}_H{}_W{}_'.format(
@@ -196,6 +196,14 @@ def main():
                     if frame_count == (seq_len - 1):
                         timestamps.append(
                             buffer.get_info(cmd=3, info_datatype=8))
+
+            # Display images in parallel process via queue
+            if time.time() - t_start > \
+                    live_view_count * live_view_dt:
+                image_data = buffer_contents[0:image_size]
+                display_queue.put(image_data)
+                # display_queue.put(dummy_image_data)
+                live_view_count = live_view_count + 1
 
             # Check for keypress to decide whether to enable saving,
             # go to preview mode or terminate
@@ -256,14 +264,6 @@ def main():
                     enable_saving = False
                     acquire = False
                     continue
-
-            # Display images in parallel process via queue
-            if time.time() - t_start > \
-                    live_view_count * live_view_dt:
-                image_data = buffer_contents[0:image_size]
-                display_queue.put(image_data)
-                # display_queue.put(dummy_image_data)
-                live_view_count = live_view_count + 1
 
     # Stop processes and empty queues if necessary
 #    if display_process.exitcode is None:
