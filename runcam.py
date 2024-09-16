@@ -9,7 +9,7 @@ import time
 # from math import ceil
 from multiprocessing import Queue, Process
 
-# import numpy as np
+import numpy as np
 
 from egrabber import Buffer
 from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
@@ -70,8 +70,6 @@ def main():
 
     acquire = True
     enable_saving = False
-
-    buffer_count = 0
 
     # TESTING with numbanks
     image_size = cmd_args.roi_height * cmd_args.roi_width
@@ -150,23 +148,22 @@ def main():
                                              )
 
             # The pixel values are this list
-            buffer_contents = \
-                (buffer_dtype * buffer_size).from_address(buffer_pointer)
+#            buffer_contents = \
+#                (buffer_dtype * buffer_size).from_address(buffer_pointer)
 
-#           # Alternative pixel value collection
-#            buffer_contents = ct.cast(
-#                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
-#                ).contents
+            # Alternative pixel value collection
+            buffer_contents = ct.cast(
+                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
+                ).contents
 
             # Add to stack to save if saving initiated
             # This is only true after 'save' message is found below in
             # instruct_queue, at the moment.
             if enable_saving:
                 if not triggered:
-                    if buffer_contents[0] > trig_level:
+                    if max(buffer_contents) > trig_level:
                         triggered = True
                         frame_count = 0
-                        buffer_count = 0
                         output_filename = '{}{}_H{}_W{}_'.format(
                             output_filename_stem, output_number,
                             cmd_args.roi_height, cmd_args.roi_width
@@ -184,7 +181,6 @@ def main():
                     if frame_count < seq_len:
                         output_file.write(buffer_contents)
                         frame_count += images_per_buffer
-                        buffer_count = buffer_count + 1
                     else:  # Finish
                         triggered = False
                         output_file.close()
