@@ -69,7 +69,7 @@ def main():
     live_view_count = 1
 
     acquire = True
-    already_saving = False
+    enable_saving = False
 
     buffer_count = 0
 
@@ -107,6 +107,11 @@ def main():
 
     buffer_size = \
         images_per_buffer * image_size
+
+    # Trigger and sequence length
+    trig_level = cmd_args.trigger_level
+    seq_len = cmd_args.seq_length
+    triggered = False
 
     # Add bit depth and reading info to filename
     output_filename_stem = 'images_{}bit_'.format(cmd_args.bit_depth)
@@ -147,7 +152,7 @@ def main():
                 save_instruction = instruct_queue.get()
 
                 if save_instruction == 'save':
-                    if not already_saving:
+                    if not enable_saving:
                         output_filename = \
                             output_filename_stem + \
                             repr(output_number) + '_'
@@ -163,7 +168,7 @@ def main():
                         frame_start = \
                             buffer.get_info(cmd=16, info_datatype=8)
                         print('Buffer on frame {}'.format(frame_start))
-                        already_saving = True
+                        enable_saving = True
 
                 elif save_instruction == 'preview':
                     # If saving had been in progress,
@@ -193,7 +198,7 @@ def main():
                                            )
 
                         output_number = output_number + 1
-                        already_saving = False
+                        enable_saving = False
 
                 elif save_instruction == 'terminate':
                     # If saving had been in progress,
@@ -221,7 +226,7 @@ def main():
                                            final_filename
                                            )
 
-                    already_saving = False
+                    enable_saving = False
                     acquire = False
                     continue
 
@@ -237,9 +242,18 @@ def main():
                 (buffer_dtype * buffer_size).from_address(buffer_pointer)
 
             # Add to stack to save if saving initiated
-            if already_saving:
-                buffer_count = buffer_count + 1
-                output_file.write(buffer_contents)
+            if enable_saving:
+                if not triggered:
+                    triggered = (max(buffer_contents) > trig_level)
+                    frame_num = 0
+                    buffer_count = 0
+                else:
+                    if frame_num < seq_len:
+                        output_file.write(buffer_contents)
+                        frame_num += images_per_buffer
+                        buffer_count = buffer_count + 1
+                    else:
+                        triggered = False
 
             # Display images in parallel process via queue
             if time.time() - t_start > \
