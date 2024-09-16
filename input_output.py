@@ -310,5 +310,7 @@ def display_timings(timestamps, frame_count, images_per_buffer):
                       )
               )
     elif buffer_count == 1:
-        print('\nOnly one buffer obtained, containing {} frames.')
+        print('\nOnly one buffer obtained, containing {} frames.'
+              .format(images_per_buffer)
+            )
         print('\nNo information available on acquisition rate.')
