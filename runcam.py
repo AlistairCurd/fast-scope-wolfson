@@ -9,7 +9,7 @@ import time
 from math import ceil
 from multiprocessing import Queue, Process
 
-# import numpy as np
+import numpy as np
 
 from egrabber import Buffer
 # from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
@@ -166,22 +166,33 @@ def main():
         # do_instruction() below
         if enable_saving:
             if not triggered:
+                # Acquisition/saving speed is not as important.
+                # Finding the trigger soonest is the most important.
+                # for egrabber in egrabbers:
+                #     egrabber.stream.set('BufferPartCount', 1)
                 with Buffer(camgrabber) as buffer:
                     buffer_contents = buffer_to_list(buffer,
                                                      buffer_dtype,
                                                      buffer_size
                                                      )
 
-                if max(buffer_contents) > trig_level:
-                    triggered = True
-                    buffer_count = 0
-                    output_filename = '{}{}_H{}_W{}_'.format(
-                        output_filename_stem, output_number,
-                        cmd_args.roi_height, cmd_args.roi_width
-                        )
-                    output_path = output_path_parent / output_filename
-                    output_file = open(output_path, 'wb')
-                    timestamps = []
+                    if max(buffer_contents) > trig_level:
+                        triggered = True
+                        buffer_count = 0
+                        output_filename = '{}{}_H{}_W{}_'.format(
+                            output_filename_stem, output_number,
+                            cmd_args.roi_height, cmd_args.roi_width
+                            )
+                        output_path = output_path_parent / output_filename
+                        output_file = open(output_path, 'wb')
+                        # Now we need to get ready for fast acquisition
+                        # and saving. - I THINK THIS CHANGE IS TOO SLOW
+                        # - 1.144 ms gap to the first timestamp of the acquisition
+                        # for egrabber in egrabbers:
+                        #     egrabber.stream.set(
+                        #         'BufferPartCount', images_per_buffer)
+                        timestamp_trig = buffer.get_info(cmd=3, info_datatype=8)
+                        timestamps = []
 
             else:
                 for buffer_count in range(max_buffer_count):
@@ -288,6 +299,8 @@ def main():
     # Remove output folder of no data saved
     if not any(output_path_parent.iterdir()):
         output_path_parent.rmdir()
+
+    print(timestamp_trig)
 
 
 if __name__ == '__main__':
