@@ -267,7 +267,79 @@ def display_grabber_settings(grabber_settings, egrabber):
     print('Bit depth of pixel: ', grabber_settings.bit_depth)
 
 
-def display_timings(timestamps, frame_count, images_per_buffer):
+def do_instruction(save_instruction,
+                   buffer, images_per_buffer,
+                   timestamps, buffer_count,
+                   output_file,
+                   output_filename, output_path, output_number,
+                   enable_saving,
+                   triggered,
+                   acquire
+                   ):
+    """Check for user input and respond.
+
+    """
+    if save_instruction == 'save':
+        if not enable_saving:
+            enable_saving = True
+            triggered = False
+
+    elif save_instruction == 'preview':
+        # If saving had been in progress,
+        # there will be an entry in timestamps[]
+        # Include the last timestamp and display timings
+        if len(timestamps) == 1:
+            timestamp = \
+                buffer.get_info(cmd=3, info_datatype=8)
+            timestamps.append(timestamp)
+            print('\nTimings of saved file:')
+            display_timings(timestamps,
+                            buffer_count,
+                            images_per_buffer
+                            )
+            if not output_file.closed:
+                output_file.close()
+                final_filename = '{}{}images'.format(
+                    output_filename,
+                    buffer_count * images_per_buffer
+                    )
+                output_path.rename(
+                    output_path.parent / final_filename)
+
+            output_number = output_number + 1
+
+        enable_saving = False
+        triggered = False
+
+    elif save_instruction == 'terminate':
+        # If saving had been in progress,
+        # there will be an entry in timestamps[]
+        # Include the last timestamp and display timings
+        if len(timestamps) == 1:
+            timestamp = \
+                buffer.get_info(cmd=3, info_datatype=8)
+            print('Buffer finished: {}'.format(timestamp))
+            timestamps.append(timestamp)
+            display_timings(timestamps,
+                            buffer_count,
+                            images_per_buffer
+                            )
+            if not output_file.closed:
+                output_file.close()
+                final_filename = '{}{}images'.format(
+                    output_filename,
+                    buffer_count * images_per_buffer
+                    )
+                output_path.rename(
+                    output_path.parent / final_filename)
+
+        enable_saving = False
+        acquire = False
+
+    return enable_saving, triggered, acquire, buffer_count, output_number
+
+
+def display_timings(timestamps, buffer_count, images_per_buffer):
     """Display information about acquisition timings.
 
     Args:
@@ -275,13 +347,12 @@ def display_timings(timestamps, frame_count, images_per_buffer):
             Timestamps in microseconds of acquired buffers.
             Should contain at least the timestamps
             of the first and last buffers.
-        frame_count (int):
+        buffer_count (int):
             The number of frames acquired in the sequence.
         images_per_buffer (int):
             The number of images acquired per buffer.
     """
     timestamp_range = timestamps[-1] - timestamps[0]
-    buffer_count = int(frame_count / images_per_buffer)
 
     if buffer_count > 1:
         print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))

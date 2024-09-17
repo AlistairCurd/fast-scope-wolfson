@@ -7,6 +7,39 @@ import cv2
 import numpy as np
 
 from egrabber import BUFFER_INFO_WIDTH, BUFFER_INFO_HEIGHT, INFO_DATATYPE_SIZET
+from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
+
+
+def buffer_to_list(buffer, buffer_dtype, buffer_size):
+    """Get the buffered data as a list.
+
+    Args:
+        buffer (eGrabber Buffer)
+        buffer_dtype (ctypes dtype):
+            Data type saved in the buffer, different for 8-bit and
+            12-bit packed and unpacked.
+        buffer_size (int):
+            The number of data elements in the buffer.
+
+    Returns:
+        contents (list):
+            The contents of the buffer.
+    """
+    # The data is here
+    buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
+                                     INFO_DATATYPE_PTR
+                                     )
+
+    # The pixel values are this list
+#            buffer_contents = \
+#                (buffer_dtype * buffer_size).from_address(buffer_pointer)
+
+    # Alternative pixel value collection
+    buffer_contents = ct.cast(
+        buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
+        ).contents
+
+    return buffer_contents
 
 
 def mono8_to_ndarray(ptr_address, width, height, images_per_buffer=1):

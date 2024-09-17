@@ -310,7 +310,7 @@ def create_and_configure_grabbers(grabber_settings):
     print('\nSetting up buffer...')
 
     duration_one_image = 1 / grabber_settings.fps
-    images_per_buffer = 50
+    images_per_buffer = 200
     duration_allocated_buffers = 0.1
     duration_one_buffer = duration_one_image * images_per_buffer
     num_buffers_to_alloc = ceil(duration_allocated_buffers

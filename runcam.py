@@ -6,18 +6,21 @@ import ctypes as ct
 import sys
 import time
 
-# from math import ceil
+from math import ceil
 from multiprocessing import Queue, Process
 
-import numpy as np
+# import numpy as np
 
 from egrabber import Buffer
-from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
+# from egrabber import BUFFER_INFO_BASE, INFO_DATATYPE_PTR
+
+from convert_display_data import buffer_to_list
 
 from input_output import display_from_buffer_queue_multiprocess
-from input_output import display_timings
+# from input_output import display_timings
 from input_output import get_cmd_inputs
 from input_output import set_output_path, display_grabber_settings
+from input_output import do_instruction
 from set_grabber_properties import create_and_configure_grabbers
 
 
@@ -68,14 +71,8 @@ def main():
     live_view_dt = 0.25
     live_view_count = 1
 
-    acquire = True
-    enable_saving = False
-
-    # TESTING with numbanks
+    # # IMAGE SIZE AND BUFFER SIZE
     image_size = cmd_args.roi_height * cmd_args.roi_width
-
-    # height = cmd_args.roi_height
-    # width = cmd_args.roi_width
 
     # Reading + unpacking options for 12-bit data
     # 10 to 14-bit buffer is by default unpacked into 16 bits
@@ -137,129 +134,138 @@ def main():
           )
     print('\nTo zoom, press + or -.')
 
+    # Set up to start acquisition without saving
+    acquire = True
+    enable_saving = False
+    buffer_count = 0
+    output_filename = '{}{}_H{}_W{}_'.format(
+        output_filename_stem, output_number,
+        cmd_args.roi_height, cmd_args.roi_width
+        )
+    output_path = output_path_parent / output_filename
+    output_file = open(output_path, 'wb')
+
+    # Trigger and sequence length
+    trig_level = cmd_args.trigger_level
+    seq_len = cmd_args.seq_length
+    max_buffer_count = ceil(seq_len / images_per_buffer)
+    triggered = False
+
     # t_stop = t_start + 10
     t_start = time.time()
     # while t < t_stop:
     while acquire:
-        with Buffer(camgrabber) as buffer:
-            # The data is here
-            buffer_pointer = buffer.get_info(BUFFER_INFO_BASE,
-                                             INFO_DATATYPE_PTR
-                                             )
+        if not enable_saving:
+            with Buffer(camgrabber) as buffer:
+                buffer_contents = buffer_to_list(buffer,
+                                                 buffer_dtype,
+                                                 buffer_size
+                                                 )
 
-            # The pixel values are this list
-#            buffer_contents = \
-#                (buffer_dtype * buffer_size).from_address(buffer_pointer)
+        # Saving is enabled from keypress, registered in
+        # do_instruction() below
+        if enable_saving:
+            if not triggered:
+                with Buffer(camgrabber) as buffer:
+                    buffer_contents = buffer_to_list(buffer,
+                                                     buffer_dtype,
+                                                     buffer_size
+                                                     )
 
-            # Alternative pixel value collection
-            buffer_contents = ct.cast(
-                buffer_pointer, ct.POINTER(buffer_dtype * buffer_size)
-                ).contents
+                if max(buffer_contents) > trig_level:
+                    triggered = True
+                    buffer_count = 0
+                    output_filename = '{}{}_H{}_W{}_'.format(
+                        output_filename_stem, output_number,
+                        cmd_args.roi_height, cmd_args.roi_width
+                        )
+                    output_path = output_path_parent / output_filename
+                    output_file = open(output_path, 'wb')
+                    timestamps = []
 
-            # Add to stack to save if saving initiated
-            # This is only true after 'save' message is found below in
-            # instruct_queue, at the moment.
-            if enable_saving:
-                if not triggered:
-                    if max(buffer_contents) > trig_level:
-                        triggered = True
-                        frame_count = 0
-                        output_filename = '{}{}_H{}_W{}_'.format(
-                            output_filename_stem, output_number,
-                            cmd_args.roi_height, cmd_args.roi_width
-                            )
-                        output_path = output_path_parent / output_filename
-                        output_file = open(output_path, 'wb')
-                        timestamps = []
-                else:
-                    # Get first timestamp
-                    if not frame_count:
-                        timestamps.append(
-                            buffer.get_info(cmd=3, info_datatype=8))
-                    # Write the data for the sequence length
-                    # (if not interrupted)
-                    if frame_count < seq_len:
+            else:
+                for buffer_count in range(max_buffer_count):
+                    with Buffer(camgrabber) as buffer:
+                        buffer_contents = buffer_to_list(buffer,
+                                                         buffer_dtype,
+                                                         buffer_size
+                                                         )
+
+                        timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                        # Get first timestamp
+                        if not buffer_count:
+                            timestamps.append(timestamp)
+
+                        # Write the data for the sequence length
+                        # (if not interrupted)
+                        # if frame_count < seq_len:
                         output_file.write(buffer_contents)
-                        frame_count += images_per_buffer
-                    else:  # Finish
-                        triggered = False
-                        output_file.close()
-                        final_filename = '{}{}images'.format(
-                            output_filename, frame_count)
-                        output_path.rename(output_path_parent / final_filename)
-                        output_number = output_number + 1
-                    # Get the last timestamp
-                    if frame_count == (seq_len - 1):
-                        timestamps.append(
-                            buffer.get_info(cmd=3, info_datatype=8))
 
-            # Display images in parallel process via queue
-            if time.time() - t_start > \
-                    live_view_count * live_view_dt:
-                image_data = buffer_contents[0:image_size]
-                display_queue.put(image_data)
-                # display_queue.put(dummy_image_data)
-                live_view_count = live_view_count + 1
+                        # Display images in parallel process via queue
+                        # within loop
+                        if time.time() - t_start > \
+                                live_view_count * live_view_dt:
+                            # Use first frame in buffer
+                            display_queue.put(buffer_contents[0:image_size])
+                            # display_queue.put(dummy_image_data)
+                            live_view_count = live_view_count + 1
 
-            # Check for keypress to decide whether to enable saving,
-            # go to preview mode or terminate
-            # Take appropriate actions in response
-            if not instruct_queue.empty():
-                # Giving 'save', 'preview' or 'terminate'
-                save_instruction = instruct_queue.get()
+                        # Check for keypress to decide whether to enable
+                        # saving (redundant here), go to preview mode
+                        # or terminate, within loop
+                        if not instruct_queue.empty():
+                            enable_saving, triggered, acquire, \
+                                buffer_count, output_number = \
+                                do_instruction(
+                                    instruct_queue.get(),
+                                    buffer, images_per_buffer,
+                                    # buffer_count + 1
+                                    # since starting at zero
+                                    timestamps, buffer_count + 1,
+                                    output_file, output_filename,
+                                    output_path, output_number,
+                                    enable_saving,
+                                    triggered,
+                                    acquire
+                                    )
+                            if not enable_saving:
+                                break
 
-                if save_instruction == 'save':
-                    if not enable_saving:
-                        enable_saving = True
-
-                elif save_instruction == 'preview':
-                    # If saving had been in progress,
-                    # there will be an entry in timestamps[]
-                    # Include the last timestamp and display timings
-                    if len(timestamps) == 1:
-                        timestamp = \
-                            buffer.get_info(cmd=3, info_datatype=8)
-                        timestamps.append(timestamp)
-                        print('\nTimings of saved file:')
-                        display_timings(timestamps,
-                                        frame_count,
-                                        images_per_buffer
-                                        )
-                        if not output_file.closed:
-                            output_file.close()
-                            final_filename = '{}{}images'.format(
-                                output_filename, frame_count)
-                            output_path.rename(
-                                output_path_parent / final_filename)
-
-                        output_number = output_number + 1
-
-                    enable_saving = False
+                # If the loop is not broken and gets to the end
+                # - so not stopped by a command which finishes off
+                # the data writing:
+                if enable_saving:
                     triggered = False
+                    output_file.close()
+                    final_filename = '{}{}images'.format(
+                        output_filename, buffer_count * images_per_buffer
+                        )
+                    output_path.rename(output_path_parent / final_filename)
+                    output_number = output_number + 1
+                    # Get the last timestamp
+                    timestamps.append(timestamp)
 
-                elif save_instruction == 'terminate':
-                    # If saving had been in progress,
-                    # there will be an entry in timestamps[]
-                    # Include the last timestamp and display timings
-                    if len(timestamps) == 1:
-                        timestamp = \
-                            buffer.get_info(cmd=3, info_datatype=8)
-                        print('Buffer finished: {}'.format(timestamp))
-                        timestamps.append(timestamp)
-                        display_timings(timestamps,
-                                        frame_count,
-                                        images_per_buffer
-                                        )
-                        if not output_file.closed:
-                            output_file.close()
-                            final_filename = '{}{}images'.format(
-                                output_filename, frame_count)
-                            output_path.rename(
-                                output_path_parent / final_filename)
+        # Display images in parallel process via queue
+        if time.time() - t_start > \
+                live_view_count * live_view_dt:
+            # Use first frame in buffer
+            display_queue.put(buffer_contents[0:image_size])
+            # display_queue.put(dummy_image_data)
+            live_view_count = live_view_count + 1
 
-                    enable_saving = False
-                    acquire = False
-                    continue
+        # Check for keypress to decide whether to enable saving,
+        # go to preview mode or terminate
+        if not instruct_queue.empty():
+            enable_saving, triggered, acquire, buffer_count, output_number = \
+                do_instruction(instruct_queue.get(),
+                               buffer, images_per_buffer,
+                               timestamps, buffer_count,
+                               output_file,
+                               output_filename, output_path, output_number,
+                               enable_saving,
+                               triggered,
+                               acquire
+                               )
 
     # Stop processes and empty queues if necessary
 #    if display_process.exitcode is None:
