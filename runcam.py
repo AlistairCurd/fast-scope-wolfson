@@ -165,35 +165,37 @@ def main():
         # Saving is enabled from keypress, registered in
         # do_instruction() below
         if enable_saving:
+
+            # Wait for trigger and activate above intensity threshold:
             if not triggered:
-                # Acquisition/saving speed is not as important.
-                # Finding the trigger soonest is the most important.
-                # for egrabber in egrabbers:
-                #     egrabber.stream.set('BufferPartCount', 1)
                 with Buffer(camgrabber) as buffer:
                     buffer_contents = buffer_to_list(buffer,
                                                      buffer_dtype,
                                                      buffer_size
                                                      )
-
-                    if max(buffer_contents) > trig_level:
+                    # print('max: {}'.format(max(buffer_contents)))
+                    # This test fails when BufferPartCount is too low
+                    # for the acquisition rate.
+                    # Sometimes it does not crash but gives incorrect values
+                    # - too high.
+                    if np.max(buffer_contents) > trig_level:
                         triggered = True
-                        buffer_count = 0
                         output_filename = '{}{}_H{}_W{}_'.format(
                             output_filename_stem, output_number,
                             cmd_args.roi_height, cmd_args.roi_width
                             )
                         output_path = output_path_parent / output_filename
                         output_file = open(output_path, 'wb')
-                        # Now we need to get ready for fast acquisition
-                        # and saving. - I THINK THIS CHANGE IS TOO SLOW
-                        # - 1.144 ms gap to the first timestamp of the acquisition
-                        # for egrabber in egrabbers:
-                        #     egrabber.stream.set(
-                        #         'BufferPartCount', images_per_buffer)
-                        timestamp_trig = buffer.get_info(cmd=3, info_datatype=8)
+
+                        # Use this line to test for the triggering
+                        # to saving time at the end
+                        # timestamp_trig = buffer.get_info(cmd=3,
+                        #                                  info_datatype=8)
+
+                        # Set this up to use to display timings.
                         timestamps = []
 
+            # If triggered:
             else:
                 for buffer_count in range(max_buffer_count):
                     with Buffer(camgrabber) as buffer:
@@ -229,7 +231,8 @@ def main():
                                 buffer_count, output_number = \
                                 do_instruction(
                                     instruct_queue.get(),
-                                    buffer, images_per_buffer,
+                                    buffer,
+                                    egrabbers[0].stream.get('BufferPartCount'),
                                     # buffer_count + 1
                                     # since starting at zero
                                     timestamps, buffer_count + 1,
@@ -249,7 +252,7 @@ def main():
                     triggered = False
                     output_file.close()
                     final_filename = '{}{}images'.format(
-                        output_filename, buffer_count * images_per_buffer
+                        output_filename, (buffer_count + 1) * images_per_buffer
                         )
                     output_path.rename(output_path_parent / final_filename)
                     output_number = output_number + 1
@@ -279,28 +282,25 @@ def main():
                                )
 
     # Stop processes and empty queues if necessary
-#    if display_process.exitcode is None:
-#        display_queue.put(None)
-#        time.sleep(0.1)
-#    while not display_queue.empty():
-#        display_queue.get()
-#        time.sleep(0.1)
-
-    # if save_process.exitcode is None:
-    #    save_queue.put(None)
+    if display_process.exitcode is None:
+        display_queue.put(None)
+        time.sleep(0.1)
+    while not display_queue.empty():
+        display_queue.get()
+        time.sleep(0.1)
 
     # Make sure other queues are empty
-#    if not instruct_queue.empty():
-#        instruct_queue.get()
-#    print('{:.1f} s after closing instruct_queue'
-#          .format(time.time() - t0)
-#          )
+    if not instruct_queue.empty():
+        instruct_queue.get()
 
     # Remove output folder of no data saved
     if not any(output_path_parent.iterdir()):
         output_path_parent.rmdir()
 
-    print(timestamp_trig)
+    # Can use this with uncommenting timestamp_trig above to test
+    # time between trigger and end of first buffer.
+#    if timestamps:
+#        print(timestamp_trig)
 
 
 if __name__ == '__main__':

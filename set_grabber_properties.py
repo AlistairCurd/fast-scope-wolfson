@@ -311,7 +311,7 @@ def create_and_configure_grabbers(grabber_settings):
 
     duration_one_image = 1 / grabber_settings.fps
     images_per_buffer = 200
-    duration_allocated_buffers = 0.1
+    duration_allocated_buffers = 0.01
     duration_one_buffer = duration_one_image * images_per_buffer
     num_buffers_to_alloc = ceil(duration_allocated_buffers
                                 / duration_one_buffer
@@ -324,11 +324,15 @@ def create_and_configure_grabbers(grabber_settings):
 
     # For each bank grabber, set the multipart buffer up
     # (before allocating the buffer for the unified camera grabber)
-    for egrabber in egrabbers:
-        egrabber.stream.set('BufferPartCount', images_per_buffer)
+#    for egrabber in egrabbers:
+#        egrabber.stream.set('BufferPartCount', images_per_buffer)
 
     # Allocate buffer
     # t_alloc_start = time.time()
+    print('\n{} buffers allocated.'.format(num_buffers_to_alloc))
+    print('\n {} frames per buffer.'
+          .format(egrabbers[0].stream.get('BufferPartCount'))
+          )
     camgrabber.realloc_buffers(num_buffers_to_alloc)
     # print('Buffer allocation took {} s.'
     #      .format(time.time() - t_alloc_start)
