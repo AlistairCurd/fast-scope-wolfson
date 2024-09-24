@@ -343,16 +343,15 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
     """Display information about acquisition timings.
 
     Args:
-        timestamps (int):
-            Timestamps in microseconds of acquired buffers.
-            Should contain at least the timestamps
-            of the first and last buffers.
+        timestamps (list):
+            Timestamps in microseconds of the first and last buffers
+            in an acquisition.
         buffer_count (int):
             The number of frames acquired in the sequence.
         images_per_buffer (int):
             The number of images acquired per buffer.
     """
-    timestamp_range = timestamps[-1] - timestamps[0]
+    timestamp_range = timestamps[1] - timestamps[0]
 
     if buffer_count > 1:
         print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))

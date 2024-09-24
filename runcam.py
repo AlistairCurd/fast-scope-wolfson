@@ -17,7 +17,7 @@ from egrabber import Buffer
 from convert_display_data import buffer_to_list
 
 from input_output import display_from_buffer_queue_multiprocess
-# from input_output import display_timings
+from input_output import display_timings
 from input_output import get_cmd_inputs
 from input_output import set_output_path, display_grabber_settings
 from input_output import do_instruction
@@ -194,6 +194,8 @@ def main():
 
                         # Set this up to use to display timings.
                         timestamps = []
+                        timestamps.append(
+                            buffer.get_info(cmd=3, info_datatype=8))
 
             # If triggered:
             else:
@@ -258,6 +260,10 @@ def main():
                     output_number = output_number + 1
                     # Get the last timestamp
                     timestamps.append(timestamp)
+                    print(timestamps[0])
+                    display_timings(timestamps[1:],
+                                    buffer_count + 1,
+                                    images_per_buffer)
 
         # Display images in parallel process via queue
         if time.time() - t_start > \
