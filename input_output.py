@@ -374,7 +374,7 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
         # as we have first and last timestamps, no timestamp before acquiring
         # the first buffer
         print('\nData saved.')
-        print('{} frames over {:.3f} s.'
+        print('{} frames over {:.3f} s'
               .format(buffer_count * images_per_buffer,
                       timestamp_range * (1 + 1 / (buffer_count - 1)) / 1e6
                       )
@@ -386,8 +386,10 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
               .format(average_frame_time))
         # per s
         print('FPS: {:.1f}'.format(1 / (average_frame_time / 1e6)))
-        print('Time per buffer acquisition: {:.1f} us'
-              .format(timestamp_range / (buffer_count - 1))
+        print('Time per buffer acquisition: {:.1f} us ({:d} frames)'
+              .format(timestamp_range / (buffer_count - 1),
+                      images_per_buffer
+                      )
               )
         # print('Acquired {} frames per buffer'.format(images_per_buffer))
 
