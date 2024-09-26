@@ -299,7 +299,11 @@ def main():
     if not instruct_queue.empty():
         instruct_queue.get()
 
-    # Remove output folder of no data saved
+    # Remove last file if no data was saved in it
+    # (the only file if no data is saved at all
+    [p.unlink() for p in output_path_parent.iterdir() if p.name[-1] == '_']
+
+    # Remove output folder if no data was saved at all
     if not any(output_path_parent.iterdir()):
         output_path_parent.rmdir()
 

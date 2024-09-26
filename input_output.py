@@ -288,6 +288,10 @@ def do_instruction(save_instruction,
         # If saving had been in progress,
         # there will be an entry in timestamps[]
         # Include the last timestamp and display timings
+        if not output_file.closed:
+            output_file.close()
+
+        # Display timings and add to filename
         if len(timestamps) == 2:
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
@@ -297,14 +301,13 @@ def do_instruction(save_instruction,
                             buffer_count,
                             images_per_buffer
                             )
-            if not output_file.closed:
-                output_file.close()
-                final_filename = '{}{}images'.format(
-                    output_filename,
-                    buffer_count * images_per_buffer
-                    )
-                output_path.rename(
-                    output_path.parent / final_filename)
+
+            final_filename = '{}{}images'.format(
+                output_filename,
+                buffer_count * images_per_buffer
+                )
+            output_path.rename(
+                output_path.parent / final_filename)
 
             output_number = output_number + 1
 
@@ -315,6 +318,10 @@ def do_instruction(save_instruction,
         # If saving had been in progress,
         # there will be an entry in timestamps[]
         # Include the last timestamp and display timings
+        if not output_file.closed:
+            output_file.close()
+
+        # Display timings and add to filename
         if len(timestamps) == 2:
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
@@ -324,14 +331,13 @@ def do_instruction(save_instruction,
                             buffer_count,
                             images_per_buffer
                             )
-            if not output_file.closed:
-                output_file.close()
-                final_filename = '{}{}images'.format(
-                    output_filename,
-                    buffer_count * images_per_buffer
-                    )
-                output_path.rename(
-                    output_path.parent / final_filename)
+
+            final_filename = '{}{}images'.format(
+                output_filename,
+                buffer_count * images_per_buffer
+                )
+            output_path.rename(
+                output_path.parent / final_filename)
 
         enable_saving = False
         acquire = False
