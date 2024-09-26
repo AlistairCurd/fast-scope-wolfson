@@ -288,12 +288,12 @@ def do_instruction(save_instruction,
         # If saving had been in progress,
         # there will be an entry in timestamps[]
         # Include the last timestamp and display timings
-        if len(timestamps) == 1:
+        if len(timestamps) == 2:
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
             timestamps.append(timestamp)
             print('\nTimings of saved file:')
-            display_timings(timestamps,
+            display_timings(timestamps[1:],
                             buffer_count,
                             images_per_buffer
                             )
@@ -315,12 +315,12 @@ def do_instruction(save_instruction,
         # If saving had been in progress,
         # there will be an entry in timestamps[]
         # Include the last timestamp and display timings
-        if len(timestamps) == 1:
+        if len(timestamps) == 2:
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
             print('Buffer finished: {}'.format(timestamp))
             timestamps.append(timestamp)
-            display_timings(timestamps,
+            display_timings(timestamps[1:],
                             buffer_count,
                             images_per_buffer
                             )
