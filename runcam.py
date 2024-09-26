@@ -260,7 +260,7 @@ def main():
                     output_number = output_number + 1
                     # Get the last timestamp
                     timestamps.append(timestamp)
-                    print(timestamps[0])
+                    # print(timestamps[0])
                     display_timings(timestamps[1:],
                                     buffer_count + 1,
                                     images_per_buffer)

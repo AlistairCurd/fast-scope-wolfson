@@ -229,14 +229,12 @@ def display_from_buffer_queue_multiprocess(displayqueue,
                 # Acquisition mode instructions
                 elif keypress == ord('t'):
                     instructqueue.put('terminate')
-                    print('\nAcquisition terminated.')
                     finished = True  # Will leave while loop
                 elif keypress == ord('s'):
                     instructqueue.put('save')
                     print('\nSaving enabled...')
                 elif keypress == ord('p'):
                     instructqueue.put('preview')
-                    print('\nIn preview mode, not saving data...')
 
                 # Zoom instructions
                 elif keypress == ord('+'):
@@ -296,7 +294,7 @@ def do_instruction(save_instruction,
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
             timestamps.append(timestamp)
-            print('\nTimings of saved file:')
+
             display_timings(timestamps[1:],
                             buffer_count,
                             images_per_buffer
@@ -310,6 +308,8 @@ def do_instruction(save_instruction,
                 output_path.parent / final_filename)
 
             output_number = output_number + 1
+
+        print('\nIn preview mode, not saving data...')
 
         enable_saving = False
         triggered = False
@@ -325,7 +325,7 @@ def do_instruction(save_instruction,
         if len(timestamps) == 2:
             timestamp = \
                 buffer.get_info(cmd=3, info_datatype=8)
-            print('Buffer finished: {}'.format(timestamp))
+            # print('Buffer finished: {}'.format(timestamp))
             timestamps.append(timestamp)
             display_timings(timestamps[1:],
                             buffer_count,
@@ -338,6 +338,8 @@ def do_instruction(save_instruction,
                 )
             output_path.rename(
                 output_path.parent / final_filename)
+
+        print('\nAcquisition terminated.')
 
         enable_saving = False
         acquire = False
@@ -360,31 +362,35 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
     timestamp_range = timestamps[1] - timestamps[0]
 
     if buffer_count > 1:
-        print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
-        print('Timestamp at buffer {}: {} us'
-              .format(buffer_count, timestamps[-1])
-              )
-        print('Time between first and last timestamps: {} us'
-              .format(timestamp_range)
-              )
+        # print('\nTimestamp at buffer 1: {} us'.format(timestamps[0]))
+        # print('Timestamp at buffer {}: {} us'
+        #      .format(buffer_count, timestamps[-1])
+        #      )
+        # print('Time between first and last timestamps: {} us'
+        #      .format(timestamp_range)
+        #      )
+
         # Use buffer_count - 1 as divisor to estimate timings,
         # as we have first and last timestamps, no timestamp before acquiring
         # the first buffer
-        print('Time per buffer acquisition: {:.1f} us'
-              .format(timestamp_range / (buffer_count - 1))
-              )
-        print('Acquired {} frames per buffer'.format(images_per_buffer))
-        print('Time per frame: {:.3f} us'
-              .format(timestamp_range
-                      / ((buffer_count - 1) * images_per_buffer)
-                      )
-              )
-
-        print('Acquired {} frames in total over {:.1f} s.'
+        print('\nData saved.')
+        print('{} frames over {:.3f} s.'
               .format(buffer_count * images_per_buffer,
                       timestamp_range * (1 + 1 / (buffer_count - 1)) / 1e6
                       )
               )
+        # in us
+        average_frame_time = \
+            timestamp_range / ((buffer_count - 1) * images_per_buffer)
+        print('Time per frame: {:.3f} us'
+              .format(average_frame_time))
+        # per s
+        print('FPS: {:.1f}'.format(1 / (average_frame_time / 1e6)))
+        print('Time per buffer acquisition: {:.1f} us'
+              .format(timestamp_range / (buffer_count - 1))
+              )
+        # print('Acquired {} frames per buffer'.format(images_per_buffer))
+
     elif buffer_count == 1:
         print('\nOnly one buffer obtained, containing {} frames.'
               .format(images_per_buffer)
