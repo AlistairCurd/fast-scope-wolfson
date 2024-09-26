@@ -4,7 +4,7 @@ with EGrabber Coaxlink interface"""
 import sys
 import time
 
-from math import ceil
+from math import ceil, floor
 
 # import numpy as np
 
@@ -306,21 +306,19 @@ def create_and_configure_grabbers(grabber_settings):
             except GenTLException:
                 pass
 
-    # Set number of images per multipart buffer
+    # ### Set number of images per multipart buffer
     print('\nSetting up buffer...')
 
-    duration_one_image = 1 / grabber_settings.fps
-    images_per_buffer = 25
-    duration_allocated_buffers = 0.01
-    duration_one_buffer = duration_one_image * images_per_buffer
-    num_buffers_to_alloc = ceil(duration_allocated_buffers
-                                / duration_one_buffer
-                                )
-    # For slower frame rates, do not use the multipart buffer,
-    # so that an image from the first buffer is displayed sooner
-    if num_buffers_to_alloc == 1:
+    duration_one_image_ms = 1 / grabber_settings.fps * 1000
+
+    max_duration_one_buffer_ms = grabber_settings.max_buffer_timing_ms
+
+    images_per_buffer = floor(max_duration_one_buffer_ms
+                              / duration_one_image_ms)
+    if not images_per_buffer:
         images_per_buffer = 1
-        num_buffers_to_alloc = 10
+
+    num_buffers_to_alloc = 10
 
     # For each bank grabber, set the multipart buffer up
     # (before allocating the buffer for the unified camera grabber)

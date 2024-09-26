@@ -48,6 +48,9 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         type=float,
                         default=1000,
                         help='Frame rate (frames per second).'
+                        ' The actual FPS will be slightly lower,'
+                        ' because of a latency of about 330 ms'
+                        ' in the framegrabber.'
                         )
 
 #    parser.add_argument('-x', '--exposure',
@@ -95,8 +98,22 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         dest='seq_length',
                         type=int,
                         default=1e15,
-                        help='Maximum sequence length to save, '
+                        help='Maximum sequence length to save (frames), '
                         'for use with triggered sequences.'
+                        )
+
+    parser.add_argument('--buffer-time',
+                        dest='max_buffer_timing_ms',
+                        type=float,
+                        default=2.5,
+                        help='Maximum duration (ms) for the multipart buffer.'
+                        ' Larger numbers help with frame rate, smaller numbers'
+                        ' provide a shorter time between'
+                        ' trigger and acquisition, for when that is important.'
+                        ' The actual buffer timings may be slightly higher,'
+                        ' because a latency in the frame grabber means that'
+                        ' the frames are slightly longer in reality'
+                        ' that the timings set by the user.'
                         )
 
     args = parser.parse_args()
