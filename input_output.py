@@ -3,6 +3,8 @@
 import argparse
 import cv2
 import sys
+
+from math import floor
 from pathlib import Path
 
 import numpy as np
@@ -295,15 +297,17 @@ def do_instruction(save_instruction,
                 buffer.get_info(cmd=3, info_datatype=8)
             timestamps.append(timestamp)
 
-            display_timings(timestamps[1:],
-                            buffer_count,
-                            images_per_buffer
-                            )
+            average_frame_time = display_timings(timestamps[1:],
+                                                 buffer_count,
+                                                 images_per_buffer
+                                                 )
 
-            final_filename = '{}{}images'.format(
+            final_filename = add_to_filename(
                 output_filename,
-                buffer_count * images_per_buffer
+                buffer_count * images_per_buffer,
+                average_frame_time
                 )
+
             output_path.rename(
                 output_path.parent / final_filename)
 
@@ -327,15 +331,17 @@ def do_instruction(save_instruction,
                 buffer.get_info(cmd=3, info_datatype=8)
             # print('Buffer finished: {}'.format(timestamp))
             timestamps.append(timestamp)
-            display_timings(timestamps[1:],
-                            buffer_count,
-                            images_per_buffer
-                            )
+            average_frame_time = display_timings(timestamps[1:],
+                                                 buffer_count,
+                                                 images_per_buffer
+                                                 )
 
-            final_filename = '{}{}images'.format(
+            final_filename = add_to_filename(
                 output_filename,
-                buffer_count * images_per_buffer
+                buffer_count * images_per_buffer,
+                average_frame_time
                 )
+
             output_path.rename(
                 output_path.parent / final_filename)
 
@@ -355,9 +361,16 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
             Timestamps in microseconds of the first and last buffers
             in an acquisition.
         buffer_count (int):
-            The number of frames acquired in the sequence.
+            The number of buffers acquired in the sequence.
         images_per_buffer (int):
             The number of images acquired per buffer.
+
+    Returns:
+        average_frame_time (float or str):
+            If more than one buffer in sequence:
+                average measured frame cycling time, from buffer timestamps.
+            If only one buffer in sequence:
+                'NoTiming'
     """
     timestamp_range = timestamps[1] - timestamps[0]
 
@@ -398,3 +411,31 @@ def display_timings(timestamps, buffer_count, images_per_buffer):
               .format(images_per_buffer)
               )
         print('\nNo information available on acquisition rate.')
+        average_frame_time = 'NoTiming'
+
+    return average_frame_time
+
+
+def add_to_filename(filename, number_of_images, frame_time):
+    """Add useful information to an acquisition filename.
+
+    Args:
+        filename (str):
+            The filename to lengthen.
+        number_of_images (int):
+            Number of frames in the acquisition sequence.
+        frame_time (float):
+            Frame cycling time in the acquisition sequence.
+
+    Returns:
+        longer_filename (str):
+            The new filename with number of frames and frame cycling time
+            appended. Frame time is included as e.g. 11p440 for 11.440 us.
+    """
+    frame_time_str = '{}p{}'.format(
+        floor(frame_time),
+        round((frame_time - floor(frame_time)) * 1000)
+        )
+    longer_filename = '{}{}images_frames{}us'.format(
+        filename, number_of_images, frame_time_str)
+    return longer_filename

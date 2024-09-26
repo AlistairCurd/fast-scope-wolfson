@@ -16,6 +16,7 @@ from egrabber import Buffer
 
 from convert_display_data import buffer_to_list
 
+from input_output import add_to_filename
 from input_output import display_from_buffer_queue_multiprocess
 from input_output import display_timings
 from input_output import get_cmd_inputs
@@ -137,7 +138,7 @@ def main():
     # Set up to start acquisition without saving
     acquire = True
     enable_saving = False
-    buffer_count = 0
+    buffer_index = 0
     output_filename = '{}{}_H{}_W{}_'.format(
         output_filename_stem, output_number,
         cmd_args.roi_height, cmd_args.roi_width
@@ -184,7 +185,7 @@ def main():
                             output_filename_stem, output_number,
                             cmd_args.roi_height, cmd_args.roi_width
                             )
-                        output_path = output_path_parent / output_filename
+                        output_path = output_path.parent / output_filename
                         output_file = open(output_path, 'wb')
 
                         # Use this line to test for the triggering
@@ -199,7 +200,7 @@ def main():
 
             # If triggered:
             else:
-                for buffer_count in range(max_buffer_count):
+                for buffer_index in range(max_buffer_count):
                     with Buffer(camgrabber) as buffer:
                         buffer_contents = buffer_to_list(buffer,
                                                          buffer_dtype,
@@ -208,7 +209,7 @@ def main():
 
                         timestamp = buffer.get_info(cmd=3, info_datatype=8)
                         # Get first timestamp
-                        if not buffer_count:
+                        if not buffer_index:
                             timestamps.append(timestamp)
 
                         # Write the data for the sequence length
@@ -229,15 +230,14 @@ def main():
                         # saving (redundant here), go to preview mode
                         # or terminate, within loop
                         if not instruct_queue.empty():
+                            buffer_count = buffer_index + 1
                             enable_saving, triggered, acquire, \
                                 buffer_count, output_number = \
                                 do_instruction(
                                     instruct_queue.get(),
                                     buffer,
                                     egrabbers[0].stream.get('BufferPartCount'),
-                                    # buffer_count + 1
-                                    # since starting at zero
-                                    timestamps, buffer_count + 1,
+                                    timestamps, buffer_count,
                                     output_file, output_filename,
                                     output_path, output_number,
                                     enable_saving,
@@ -251,19 +251,26 @@ def main():
                 # - so not stopped by a command which finishes off
                 # the data writing:
                 if enable_saving:
+                    buffer_count = buffer_index + 1
                     triggered = False
                     output_file.close()
-                    final_filename = '{}{}images'.format(
-                        output_filename, (buffer_count + 1) * images_per_buffer
-                        )
-                    output_path.rename(output_path_parent / final_filename)
-                    output_number = output_number + 1
-                    # Get the last timestamp
                     timestamps.append(timestamp)
-                    # print(timestamps[0])
-                    display_timings(timestamps[1:],
-                                    buffer_count + 1,
-                                    images_per_buffer)
+
+                    average_frame_time = display_timings(timestamps[1:],
+                                                         buffer_count,
+                                                         images_per_buffer
+                                                         )
+
+                    final_filename = add_to_filename(
+                        output_filename,
+                        buffer_count * images_per_buffer,
+                        average_frame_time
+                        )
+
+                    output_path.rename(
+                        output_path.parent / final_filename)
+
+                    output_number = output_number + 1
 
         # Display images in parallel process via queue
         if time.time() - t_start > \
@@ -276,6 +283,7 @@ def main():
         # Check for keypress to decide whether to enable saving,
         # go to preview mode or terminate
         if not instruct_queue.empty():
+            buffer_count = buffer_index + 1
             enable_saving, triggered, acquire, buffer_count, output_number = \
                 do_instruction(instruct_queue.get(),
                                buffer, images_per_buffer,
