@@ -69,9 +69,6 @@ def main():
     timestamps = []
     # In microseconds, for buffer timestamps, seconds for Python time
 
-    live_view_dt = 0.25
-    live_view_count = 1
-
     # # IMAGE SIZE AND BUFFER SIZE
     image_size = cmd_args.roi_height * cmd_args.roi_width
 
@@ -152,9 +149,11 @@ def main():
     max_buffer_count = ceil(seq_len / images_per_buffer)
     triggered = False
 
-    # t_stop = t_start + 10
+    # Live view timing setup
+    live_view_dt = 0.25
+    live_view_count = 2  # Allow a gap to catch up
     t_start = time.time()
-    # while t < t_stop:
+
     while acquire:
         if not enable_saving:
             with Buffer(camgrabber) as buffer:
@@ -167,6 +166,14 @@ def main():
         # do_instruction() below
         if enable_saving:
 
+            # Set up output file
+            output_filename = '{}{}_H{}_W{}_'.format(
+                output_filename_stem, output_number,
+                cmd_args.roi_height, cmd_args.roi_width
+                )
+            output_path = output_path.parent / output_filename
+            output_file = open(output_path, 'wb')
+
             # Wait for trigger and activate above intensity threshold:
             if not triggered:
                 with Buffer(camgrabber) as buffer:
@@ -174,6 +181,7 @@ def main():
                                                      buffer_dtype,
                                                      buffer_size
                                                      )
+
                     # print('max: {}'.format(max(buffer_contents)))
                     # This test fails when BufferPartCount is too low
                     # for the acquisition rate.
@@ -181,12 +189,9 @@ def main():
                     # - too high.
                     if np.max(buffer_contents) > trig_level:
                         triggered = True
-                        output_filename = '{}{}_H{}_W{}_'.format(
-                            output_filename_stem, output_number,
-                            cmd_args.roi_height, cmd_args.roi_width
-                            )
-                        output_path = output_path.parent / output_filename
-                        output_file = open(output_path, 'wb')
+
+                        # Write the data
+                        output_file.write(buffer_contents)
 
                         # Use this line to test for the triggering
                         # to saving time at the end
@@ -197,24 +202,27 @@ def main():
                         timestamps = []
                         timestamps.append(
                             buffer.get_info(cmd=3, info_datatype=8))
+                        # t_start = time.time()
 
-            # If triggered:
-            else:
-                for buffer_index in range(max_buffer_count):
+                        # Display images in parallel process via queue
+                        # within loop
+                        if time.time() - t_start > \
+                                live_view_count * live_view_dt:
+                            # Use first frame in buffer
+                            display_queue.put(buffer_contents[0:image_size])
+                            # display_queue.put(dummy_image_data)
+                            live_view_count += 1
+
+            # If triggered and need more frames:
+            elif max_buffer_count > 1:
+                for buffer_index in range(1, max_buffer_count):
                     with Buffer(camgrabber) as buffer:
                         buffer_contents = buffer_to_list(buffer,
                                                          buffer_dtype,
                                                          buffer_size
                                                          )
 
-                        timestamp = buffer.get_info(cmd=3, info_datatype=8)
-                        # Get first timestamp
-                        if not buffer_index:
-                            timestamps.append(timestamp)
-
-                        # Write the data for the sequence length
-                        # (if not interrupted)
-                        # if frame_count < seq_len:
+                        # Write the data
                         output_file.write(buffer_contents)
 
                         # Display images in parallel process via queue
@@ -224,39 +232,46 @@ def main():
                             # Use first frame in buffer
                             display_queue.put(buffer_contents[0:image_size])
                             # display_queue.put(dummy_image_data)
-                            live_view_count = live_view_count + 1
+                            live_view_count += 1
 
                         # Check for keypress to decide whether to enable
                         # saving (redundant here), go to preview mode
                         # or terminate, within loop
                         if not instruct_queue.empty():
-                            buffer_count = buffer_index + 1
-                            enable_saving, triggered, acquire, \
-                                buffer_count, output_number = \
-                                do_instruction(
-                                    instruct_queue.get(),
-                                    buffer,
-                                    egrabbers[0].stream.get('BufferPartCount'),
-                                    timestamps, buffer_count,
-                                    output_file, output_filename,
-                                    output_path, output_number,
-                                    enable_saving,
-                                    triggered,
-                                    acquire
-                                    )
+                            instruction = instruct_queue.get()
+                            if instruction != 'save':
+                                timestamps.append(
+                                    buffer.get_info(cmd=3, info_datatype=8))
+                                buffer_count = buffer_index + 1
+                                enable_saving, triggered, acquire, \
+                                    buffer_count, output_number = \
+                                    do_instruction(
+                                        instruction,
+                                        egrabbers[0].stream.get(
+                                            'BufferPartCount'),
+                                        timestamps, buffer_count,
+                                        output_file, output_filename,
+                                        output_path, output_number,
+                                        enable_saving, triggered, acquire
+                                        )
                             if not enable_saving:
                                 break
+
+                        # Get last timestamp if reaches the end:
+                        if buffer_index == max_buffer_count - 1:
+                            timestamp = buffer.get_info(cmd=3, info_datatype=8)
+                            timestamps.append(timestamp)
 
                 # If the loop is not broken and gets to the end
                 # - so not stopped by a command which finishes off
                 # the data writing:
                 if enable_saving:
+                    # timestamps.append(timestamp)
                     buffer_count = buffer_index + 1
                     triggered = False
                     output_file.close()
-                    timestamps.append(timestamp)
 
-                    average_frame_time = display_timings(timestamps[1:],
+                    average_frame_time = display_timings(timestamps,
                                                          buffer_count,
                                                          images_per_buffer
                                                          )
@@ -272,13 +287,10 @@ def main():
 
                     output_number = output_number + 1
 
-        # Display images in parallel process via queue
-        if time.time() - t_start > \
-                live_view_count * live_view_dt:
-            # Use first frame in buffer
-            display_queue.put(buffer_contents[0:image_size])
-            # display_queue.put(dummy_image_data)
-            live_view_count = live_view_count + 1
+                # Start timings for live view and next acquisition again
+                timestamps = []
+                # t_start = time.time()
+                # live_view_count += 1
 
         # Check for keypress to decide whether to enable saving,
         # go to preview mode or terminate
@@ -286,7 +298,7 @@ def main():
             buffer_count = buffer_index + 1
             enable_saving, triggered, acquire, buffer_count, output_number = \
                 do_instruction(instruct_queue.get(),
-                               buffer, images_per_buffer,
+                               images_per_buffer,
                                timestamps, buffer_count,
                                output_file,
                                output_filename, output_path, output_number,
@@ -294,6 +306,14 @@ def main():
                                triggered,
                                acquire
                                )
+
+        # Display images in parallel process via queue
+        # For saving not enabled and saving not triggered
+        if time.time() - t_start > live_view_count * live_view_dt:
+            # Use first frame in buffer
+            display_queue.put(buffer_contents[0:image_size])
+            # display_queue.put(dummy_image_data)
+            live_view_count += 1
 
     # Stop processes and empty queues if necessary
     if display_process.exitcode is None:

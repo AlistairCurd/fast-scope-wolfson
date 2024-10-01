@@ -285,7 +285,7 @@ def display_grabber_settings(grabber_settings, egrabber):
 
 
 def do_instruction(save_instruction,
-                   buffer, images_per_buffer,
+                   images_per_buffer,
                    timestamps, buffer_count,
                    output_file,
                    output_filename, output_path, output_number,
@@ -294,7 +294,6 @@ def do_instruction(save_instruction,
                    acquire
                    ):
     """Check for user input and respond.
-
     """
     if save_instruction == 'save':
         if not enable_saving:
@@ -310,11 +309,7 @@ def do_instruction(save_instruction,
 
         # Display timings and add to filename
         if len(timestamps) == 2:
-            timestamp = \
-                buffer.get_info(cmd=3, info_datatype=8)
-            timestamps.append(timestamp)
-
-            average_frame_time = display_timings(timestamps[1:],
+            average_frame_time = display_timings(timestamps,
                                                  buffer_count,
                                                  images_per_buffer
                                                  )
@@ -344,11 +339,7 @@ def do_instruction(save_instruction,
 
         # Display timings and add to filename
         if len(timestamps) == 2:
-            timestamp = \
-                buffer.get_info(cmd=3, info_datatype=8)
-            # print('Buffer finished: {}'.format(timestamp))
-            timestamps.append(timestamp)
-            average_frame_time = display_timings(timestamps[1:],
+            average_frame_time = display_timings(timestamps,
                                                  buffer_count,
                                                  images_per_buffer
                                                  )
