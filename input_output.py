@@ -364,6 +364,8 @@ def do_instruction(save_instruction,
 def display_timings(timestamps, buffer_count, images_per_buffer):
     """Display information about acquisition timings.
 
+    This printing to screen does not seem to slow down the frames.
+
     Args:
         timestamps (list):
             Timestamps in microseconds of the first and last buffers
@@ -440,7 +442,7 @@ def add_to_filename(filename, number_of_images, frame_time):
             The new filename with number of frames and frame cycling time
             appended. Frame time is included as e.g. 11p440 for 11.440 us.
     """
-    frame_time_str = '{}p{}'.format(
+    frame_time_str = '{:d}p{:03d}'.format(
         floor(frame_time),
         round((frame_time - floor(frame_time)) * 1000)
         )
