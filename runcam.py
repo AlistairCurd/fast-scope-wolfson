@@ -32,7 +32,6 @@ def main():
     # Set up saving location and filename length
     output_path_parent = set_output_path()
     print('\nOutput will be saved in {}'.format(output_path_parent))
-    # len_frame_countber = math.floor(math.log10(cmd_args.n_frames - 1)) + 1
 
     # Create and configure grabbers
     # print('\nSetting up grabbers...')
@@ -214,7 +213,7 @@ def main():
                             live_view_count += 1
 
             # If triggered and need more frames:
-            elif max_buffer_count > 1:
+            else:
                 for buffer_index in range(1, max_buffer_count):
                     with Buffer(camgrabber) as buffer:
                         buffer_contents = buffer_to_list(buffer,

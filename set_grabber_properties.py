@@ -13,15 +13,7 @@ from egrabber import EGrabberDiscovery
 from egrabber import EGrabber
 from egrabber import GenTLException
 
-
-def plural(n):
-    """Return 's' if integer input 'n' != 1.
-    Return '' otherwise.
-    """
-    if n != 1:
-        return 's'
-    else:
-        return ''
+# from input_output import plural
 
 
 def check_input_width_and_height(
@@ -77,10 +69,6 @@ def check_exposure(fps, exp_time=None):
             Proposed exposure time (microseconds)
 
     Returns:
-        n_frames (int):
-            Number of frames to acquire
-        fps (float):
-            Frame rate (frames per second)
         exp_time (int):
             An allowable exposure time (microseconds). Set close to the frame
             cycling time if none
@@ -328,7 +316,7 @@ def create_and_configure_grabbers(grabber_settings):
     # Allocate buffer
     # t_alloc_start = time.time()
     print('\n{} buffers allocated.'.format(num_buffers_to_alloc))
-    print('\n {} frames per buffer.'
+    print('\n{} frames per buffer.'
           .format(egrabbers[0].stream.get('BufferPartCount'))
           )
     camgrabber.realloc_buffers(num_buffers_to_alloc)

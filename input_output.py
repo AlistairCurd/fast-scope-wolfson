@@ -4,6 +4,7 @@ import argparse
 import cv2
 import sys
 
+# from math import ceil
 from math import floor
 from pathlib import Path
 
@@ -11,6 +12,16 @@ import numpy as np
 
 # from convert_display_data import readas16bit_uint12packed_in8bitlist
 from set_grabber_properties import check_input_width_and_height
+
+
+def plural(n):
+    """Return 's' if integer input 'n' != 1.
+    Return '' otherwise.
+    """
+    if n != 1:
+        return 's'
+    else:
+        return ''
 
 
 def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
@@ -35,13 +46,6 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
-
-#    parser.add_argument('-n', '--numframes',
-#                        dest='n_frames',
-#                        type=int,
-#                        default=10,
-#                        help='Number of frames to acquire.'
-#                        )
 
     parser.add_argument('--fps',
                         dest='fps',
@@ -133,6 +137,45 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         print('\nNope. Bit depth must be one of {}.'
               .format(allowed_bit_depths))
         sys.exit()
+
+    # Display actual sequence length (whole number of buffers),
+    # and check at least two buffers will be saved,
+    # to include one additional buffer after the intensity trigger
+    frame_time_ms = 1 / args.fps * 1000
+    seq_length_ms = frame_time_ms * args.seq_length
+    # num_buffers = ceil(seq_length_ms / args.max_buffer_timing_ms)
+    # print('\nRequested {:d} frames = {:.5f} ms'
+    #      ' <= {:d} whole buffer{} ({:.5f} ms)'
+    #      .format(args.seq_length, seq_length_ms,
+    #              num_buffers, plural(num_buffers),
+    #              num_buffers * args.max_buffer_timing_ms)
+    #      )
+
+    if seq_length_ms > args.max_buffer_timing_ms:
+        # args.seq_length = int(round(args.max_buffer_timing_ms
+        #                            / frame_time_ms * num_buffers)
+        #                      )
+        # print('Will acquire whole number of buffers:'
+        #      ' {:d} frames.'.format(args.seq_length)
+        #      )
+        print('\nActual saved sequence will be a whole number of'
+              ' multipart buffers:')
+        print('a multiple of {:d} frames'
+              ' at this FPS and buffer timing.'
+              .format(int(round(args.max_buffer_timing_ms / frame_time_ms)))
+              )
+
+    else:  # Make sure that at least two multipart buffers are acquired.
+        print('\nRequested sequence length is less than one multipart buffer'
+              ' at this buffer timing ({} ms).'.format(
+                  args.max_buffer_timing_ms)
+              )
+        # Set new seq_length if neccesary
+        args.seq_length = \
+            int(round(args.max_buffer_timing_ms * 2 / frame_time_ms))
+        print('Increasing sequence length to two whole buffers ='
+              ' {:d} frames'.format(args.seq_length)
+              )
 
     return args
 
@@ -274,8 +317,6 @@ def display_grabber_settings(grabber_settings, egrabber):
         egrabber (EGrabber):
             An egrabber initialised for one bank of the camera.
     """
-    if hasattr(grabber_settings, 'n_frames'):
-        print('\nNumber of frames : {}'.format(grabber_settings.n_frames))
     print('Frames per second : {:.1f}'.format(grabber_settings.fps))
     print('Cycling time : {:.3f}'.format(1e6 / grabber_settings.fps), 'us')
     print('Exposure time :', egrabber.remote.get('ExposureTime'), 'us')
