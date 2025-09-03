@@ -4,21 +4,24 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 ## Built With
 * Python 3.10 on Windows 11
 * Euresys eGrabber API for Coaxlink cards
+* Phantom S710 camera
 
 ## Getting started
 
-* Set up a Python 3 environment (only 3.10 tested).
+* Set up a new Python 3 environment (only 3.10 tested).
 * Install the eGrabber Python bindings wheel from Euresys.
 * Install opencv, pillow
 * Test with the sample eGrabber Python scripts from Euresys
   * Download the eGrabber sample programs
   * Navigate to the the eGrabber Python sample programs in a command prompt
   * Run a couple of them: `python <script_name>`
+* Navigate to this repository
+* Check options with `python runcam.py -h`
+* Run `python runcam.py` with desired options.
 
 ## Code
 
-* *acquire-number-rate-exposure* : A script to acquire and save unscrambled images from the Phantom S710 with user-chosen number of frames, frame rate and exposure time over an ROI.
-* *live-numpy-opencv-unscramble.py* : A script to acquire and display unscrambled images from the Phantom S710 chip-reading pattern (two banks in use).
+* *runcam.py* : A script to acquire and save unscrambled images from the Phantom S710 with user-chosen number of frames, frame rate and exposure time over an ROI.
 * *set_grabber_properties.py* : A library with functions for setting properties of the framegrabber.
 
 ### camera_tests
