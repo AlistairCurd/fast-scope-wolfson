@@ -29,7 +29,8 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * *find_allowed_timings.py* : A script to discover the minimum and maximum frame rates that can be set.
 
 ## Files included
-* *allowed_roi_widths.txt* : The allowed widths of the acquisition region for the Phantom S710.
+* *camera_settings_info/allowed_roi_widths.txt* : The allowed widths of the acquisition region for the Phantom S710.
+* *camera_settings_info/allowed_frame_rates.txt* : The minimum and maximum allowed frame rates with different ROIs for the Phantom S710.
 
 ## Contact
 Alistair Curd - a.curd@leeds.ac.uk
