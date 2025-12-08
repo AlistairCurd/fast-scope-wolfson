@@ -224,7 +224,7 @@ def create_and_configure_grabbers(grabber_settings):
 
     # Set up ROI shape on the device for a bank,
     # taking account of the no. banks in use
-    set_roi(egrabbers[0],  # Get applied to the 'remote' for all bank grabbers.
+    set_roi(egrabbers[0],  # Gets applied to the 'remote' for all bank grabbers.
             width=grabber_settings.roi_width,
             # height=grabber_settings.roi_height / len(grabbers)
             height=grabber_settings.roi_height / len(grabber_info)
@@ -246,7 +246,10 @@ def create_and_configure_grabbers(grabber_settings):
         # egrabbers[0].stream.set('UnpackingMode', 'Off')
 
     # Set control (synchronisation and triggering) mode
-    controlmethod = 'RC'  # NC or RC
+    if len(egrabbers) > 1:
+        controlmethod = 'RC'  # NC or RC
+    elif len(egrabbers) == 1:
+        controlmethod = 'NC'
 
     for grabber in egrabbers:
         grabber.device.set('CameraControlMethod', controlmethod)
