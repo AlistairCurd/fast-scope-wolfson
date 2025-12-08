@@ -8,7 +8,7 @@ import set_grabber_properties
 from input_output import get_cmd_inputs
 
 
-def fps_test(grabber, fps_min_test=1, fps_max_test=10000, fps_step=1):
+def fps_test(grabber, fps_min_test=40000, fps_max_test=200000, fps_step=1):
 
     # Flags to control test output
     fps_min_allowed = None
@@ -88,17 +88,17 @@ def main():
     """Test eGrabber frame rates for whether they produce an error.
     Output minimum and maximum allowed frame rates.
     """
-    # Get user settings
+    # Get user settings - Does not currently work
     cmd_args = get_cmd_inputs()
 
     # Display settings
-    print('')
-    print('Image width: ', cmd_args.roi_width)
-    print('Image height: ', cmd_args.roi_height)
-    print('Bit depth of pixel: ', cmd_args.bit_depth)
-    print('Minimum FPS to test: ', cmd_args.fps_min_test)
-    print('Maximum FPS to test: ', cmd_args.fps_max_test)
-    print('FPS increment for test: ', cmd_args.fps_step)
+    #print('')
+    #print('Image width: ', cmd_args.roi_width)
+    #print('Image height: ', cmd_args.roi_height)
+    #print('Bit depth of pixel: ', cmd_args.bit_depth)
+    #print('Minimum FPS to test: ', cmd_args.fps_min_test)
+    #print('Maximum FPS to test: ', cmd_args.fps_max_test)
+    #print('FPS increment for test: ', cmd_args.fps_step)
 
     # Create grabber
     gentl = EGenTL()
@@ -118,14 +118,15 @@ def main():
 
     # Set up grabber stream for unscrambled images
     set_grabber_properties.unscramble_phantom_S710_output(
-        grabber, cmd_args.roi_width, bit_depth=cmd_args.bit_depth
+        [grabber], cmd_args.roi_width, bit_depth=cmd_args.bit_depth
         )
 
     # Test allowed frame rates
     fps_test(grabber,
-             fps_min_test=cmd_args.fps_min_test,
-             fps_max_test=cmd_args.fps_max_test,
-             fps_step=cmd_args.fps_step)
+             #fps_min_test=cmd_args.fps_min_test,
+             #fps_max_test=cmd_args.fps_max_test,
+             #fps_step=cmd_args.fps_step
+             )
 
 
 if __name__ == '__main__':
