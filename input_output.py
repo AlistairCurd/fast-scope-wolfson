@@ -120,6 +120,13 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         ' that the timings set by the user.'
                         )
 
+    parser.add_argument('-L',
+                        dest='localise',
+                        type=bool,
+                        default=False,
+                        help='Turn on particle localisation'
+                        ' in Euresys CustomLogic.')
+
     args = parser.parse_args()
 
     # Check ROI width and height.
