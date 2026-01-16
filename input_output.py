@@ -98,7 +98,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         help='Pixel level at which to trigger saving.'
                         )
 
-    parser.add_argument('-l', '--seq-length',
+    parser.add_argument('--seq-length',
                         dest='seq_length',
                         type=int,
                         default=1e15,
@@ -120,11 +120,15 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         ' that the timings set by the user.'
                         )
 
-    parser.add_argument('-L',
+    # --localise includes setting output line order needed for
+    # when line-order needs to be set as part of
+    # CustomLogic processing, rather than afterwards,
+    # e.g. when running a CustomLogic process that combines
+    # information from more than one line.
+    parser.add_argument('--localise',
                         dest='localise',
-                        type=bool,
-                        default=False,
-                        help='Turn on particle localisation'
+                        action='store_true',
+                        help='If used, turns on particle localisation'
                         ' in Euresys CustomLogic.')
 
     args = parser.parse_args()
