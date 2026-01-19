@@ -32,6 +32,9 @@ Software for running fast microscope system in Wolfson Imaging Facility, Univers
 * *camera_settings_info/allowed_roi_widths.txt* : The allowed widths of the acquisition region for the Phantom S710.
 * *camera_settings_info/allowed_frame_rates.txt* : The minimum and maximum allowed frame rates with different ROIs for the Phantom S710.
 
+## Single-particle localisation
+The flag --localise turns on single-particle localisation. Only one of the camera banks can be used for this because CustomLogic firmware supporting more banks is not available for our Coaxlink Octo card.
+
 ## Contact
 Alistair Curd - a.curd@leeds.ac.uk
 
