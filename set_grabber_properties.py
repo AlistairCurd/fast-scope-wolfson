@@ -111,13 +111,17 @@ def set_roi(grabber, x_offset=None, y_offset=None, width=None, height=None):
 
 def unscramble_phantom_S710_output(grabbers,
                                    roi_width,
+                                   roi_height,
                                    bit_depth=8,
+                                   unscramble=True
                                    ):
     """Set grabber remote and stream to produce unscrambled images
     from the Phantom S710 middle-outwards reading sequence.
 
     May need editing for using all four banks. This is initially written
     to use two banks.
+
+    Not needed for some versions of eGrabber.
 
     Args:
         grabbers (list of EGrabber objects,
@@ -126,33 +130,60 @@ def unscramble_phantom_S710_output(grabbers,
         roi_width (int)
         roi_height (int)
         bit_depth (int)
+        unscramble (bool):
+            If False, sets line order to output as if data in was top-down.
+
     """
     # Set up the streams to unscramble the middle-outwards reading sequence
     # and ready to combine appropriately
 
-    for g, grabber in enumerate(grabbers):
+    if unscramble:
+        for g, grabber in enumerate(grabbers):
 
-        # Not necessary/allowed when working from Remote settings:
-        # grabber.stream.set('RemoteHeight', roi_height)
+            # Unscrambling
+            grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
-        # Unscrambling
-        grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+            # LineWidth and LinePitch are in bytes.
 
-        # LineWidth and LinePitch are in bytes.
+            # Unpacking: 2 bytes for 12-bit acquisition
+            # (like p172 of Coaxlink handbook)
+            # grabber.stream.set(
+            #    'LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
 
-        # Unpacking: 2 bytes for 12-bit acquisition
-        # (like p172 of Coaxlink handbook)
-        # grabber.stream.set(
-        #    'LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
+            # No unpacking:
+            grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
 
-        # No unpacking:
-        grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
-        grabber.stream.set('LinePitch', 0)
+            grabber.stream.set('LinePitch', 0)
 
-        grabber.stream.set('StripeHeight', 8)
-        grabber.stream.set('StripePitch', 8 * len(grabbers))
-        grabber.stream.set('BlockHeight', 8)
-        grabber.stream.set('StripeOffset', 8 * g)
+            grabber.stream.set('StripeHeight', 8)
+            grabber.stream.set('StripePitch', 8 * len(grabbers))
+            grabber.stream.set('BlockHeight', 8)
+            grabber.stream.set('StripeOffset', 8 * g)
+    else:
+        # May only work for one bank/grabber.
+        # Not developed for more, since CustomLogic firmware not available
+        # for more banks for Coaxlink Octo.
+        for g, grabber in enumerate(grabbers):
+
+            # Unscrambling
+            grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+
+            # LineWidth and LinePitch are in bytes.
+
+            # Unpacking: 2 bytes for 12-bit acquisition
+            # (like p172 of Coaxlink handbook)
+            # grabber.stream.set(
+            #    'LineWidth', roi_width * int(np.ceil(bit_depth / 8)))
+
+            # No unpacking:
+            grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
+
+            grabber.stream.set('LinePitch', 0)
+
+            grabber.stream.set('StripeHeight', roi_height)
+            grabber.stream.set('StripePitch', roi_height * len(grabbers))
+            grabber.stream.set('BlockHeight', roi_height)
+            grabber.stream.set('StripeOffset', roi_height * g)
 
     # Adding a pause sometimes helps to allow grabber settings to take effect
     time.sleep(0.1)
@@ -224,7 +255,8 @@ def create_and_configure_grabbers(grabber_settings):
 
     # Set up ROI shape on the device for a bank,
     # taking account of the no. banks in use
-    set_roi(egrabbers[0],  # Gets applied to the 'remote' for all bank grabbers.
+    set_roi(egrabbers[0],  # Gets applied to the 'remote'
+                           # for all bank grabbers.
             width=grabber_settings.roi_width,
             # height=grabber_settings.roi_height / len(grabbers)
             height=grabber_settings.roi_height / len(grabber_info)
@@ -327,6 +359,28 @@ def create_and_configure_grabbers(grabber_settings):
     #      .format(time.time() - t_alloc_start)
     #      )
 
+    # Prevent firmware from reordering lines if this done as part of
+    # CustomLogic processing on FPGA
+    # May only work for one camera bank (grabber), which is the only
+    # CustomLogic firmware available for the Coaxlink Octo (area-scan).
+    # Seems not to be needed, currently (2026-01-19, egrabber 25.07.03.125).
+    # if grabber_settings.localise:
+    #    unscramble_phantom_S710_output(
+    #        egrabbers,
+    #        grabber_settings.roi_width,
+    #        grabber_settings.roi_height,
+    #        grabber_settings.bit_depth,
+    #        unscramble=False
+    #        )
+
+    # Turn on CustomLogic settings
+    if grabber_settings.localise:
+        # Uses 4100 (0x1004) for access to CustomLogic thresholding pipeline,
+        # modified for new functionality.
+        # 598 is hardcoded thresholding at pixel value 86, for now
+        # (0x256; 0x200 turns on the CustomLogic functionality)
+        set_customlogic_control(camgrabber, 4100, 598)
+
     return camgrabber, egrabbers, images_per_buffer
 
 
@@ -393,3 +447,26 @@ def pre_allocate_multipart_buffers(grabber,
               )
 
     return grabber, images_per_buffer
+
+
+def set_customlogic_control(grabber, address, value):
+    """
+    Set customlogic control option for an EGrabber.
+
+    Args:
+        grabber (EGrabber object):
+        address (int):
+            Address of the CustomLogic control option,
+            gets converted automatically to decimal by egrabber for
+            instructions to CustomLogic,
+            e.g. use 4100 for 0x1004
+            (address for thresholding with packaged CustomLogic scripts)
+        value (int):
+            Value to set at the address,
+            gets converted automatically to decimal by egrabber for
+            instructions to CustomLogic,
+            e.g. use 598 for 0x256 (0x200 turns on thresholding
+            and 0x56 sets threshold value (decimal) to 86)
+    """
+    grabber.interface.set('CustomLogicControlAddress', address)
+    grabber.interface.set('CustomLogicControlData', value)
