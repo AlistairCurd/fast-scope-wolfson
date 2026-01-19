@@ -141,7 +141,7 @@ def unscramble_phantom_S710_output(grabbers,
         for g, grabber in enumerate(grabbers):
 
             # Unscrambling
-            grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+            # grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
             # LineWidth and LinePitch are in bytes.
 
@@ -152,7 +152,6 @@ def unscramble_phantom_S710_output(grabbers,
 
             # No unpacking:
             grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
-
             grabber.stream.set('LinePitch', 0)
 
             grabber.stream.set('StripeHeight', 8)
@@ -166,7 +165,7 @@ def unscramble_phantom_S710_output(grabbers,
         for g, grabber in enumerate(grabbers):
 
             # Unscrambling
-            grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
+            # grabber.stream.set('StripeArrangement', 'Geometry_1X_2YM')
 
             # LineWidth and LinePitch are in bytes.
 
@@ -177,7 +176,6 @@ def unscramble_phantom_S710_output(grabbers,
 
             # No unpacking:
             grabber.stream.set('LineWidth', roi_width * ceil(bit_depth / 8))
-
             grabber.stream.set('LinePitch', 0)
 
             grabber.stream.set('StripeHeight', roi_height)
@@ -262,6 +260,13 @@ def create_and_configure_grabbers(grabber_settings):
             height=grabber_settings.roi_height / len(grabber_info)
             )
 
+    # Start and stop unified camera grabber for settings to take effect
+    # on next buffer reallocation
+    # (necessary for some, including stripe settings)
+    camgrabber.realloc_buffers(1)
+    camgrabber.start()
+    camgrabber.stop()
+
     # Bit-depth of Remote
     if grabber_settings.bit_depth == 8:
         egrabbers[0].remote.set('PixelFormat', 'Mono8')
@@ -276,6 +281,42 @@ def create_and_configure_grabbers(grabber_settings):
             grabber.stream.set('UnpackingMode', 'Lsb')
         # If packed
         # egrabbers[0].stream.set('UnpackingMode', 'Off')
+
+    # Turn on CustomLogic process
+    # and prevent eGrabber from reordering lines if this is already done
+    # as part of CustomLogic processing on FPGA.
+    # Only tested for one camera bank (grabber), which is the only
+    # CustomLogic firmware available for the Coaxlink Octo (area-scan).
+    if grabber_settings.localise:
+        # Use address 4100 (0x1004) for access to
+        # CustomLogic thresholding pipeline,
+        # modified for new functionality.
+        # 598 is hardcoded thresholding at pixel value 86, for now
+        # (0x256; 0x200 turns on the CustomLogic functionality).
+        set_customlogic_control(camgrabber, 4100, 598)
+        unscramble_phantom_S710_output(
+            [camgrabber],
+            grabber_settings.roi_width,
+            grabber_settings.roi_height,
+            grabber_settings.bit_depth,
+            unscramble=False
+            )
+    # If not using CustomLogic process, turn it off
+    # and use line re-ordering as standard for the camera
+    else:
+        try:
+            set_customlogic_control(camgrabber, 4100, 256)
+        except Exception as e:
+            print(f'You do not have the expected \
+                  CustomLogic firmware in place: {e}')
+            print('Check lines in the image appear in the correct order.')
+        unscramble_phantom_S710_output(
+            [camgrabber],
+            grabber_settings.roi_width,
+            grabber_settings.roi_height,
+            grabber_settings.bit_depth,
+            unscramble=True
+            )
 
     # Set control (synchronisation and triggering) mode
     if len(egrabbers) > 1:
@@ -358,28 +399,6 @@ def create_and_configure_grabbers(grabber_settings):
     # print('Buffer allocation took {} s.'
     #      .format(time.time() - t_alloc_start)
     #      )
-
-    # Prevent firmware from reordering lines if this done as part of
-    # CustomLogic processing on FPGA
-    # May only work for one camera bank (grabber), which is the only
-    # CustomLogic firmware available for the Coaxlink Octo (area-scan).
-    # Seems not to be needed, currently (2026-01-19, egrabber 25.07.03.125).
-    # if grabber_settings.localise:
-    #    unscramble_phantom_S710_output(
-    #        egrabbers,
-    #        grabber_settings.roi_width,
-    #        grabber_settings.roi_height,
-    #        grabber_settings.bit_depth,
-    #        unscramble=False
-    #        )
-
-    # Turn on CustomLogic settings
-    if grabber_settings.localise:
-        # Uses 4100 (0x1004) for access to CustomLogic thresholding pipeline,
-        # modified for new functionality.
-        # 598 is hardcoded thresholding at pixel value 86, for now
-        # (0x256; 0x200 turns on the CustomLogic functionality)
-        set_customlogic_control(camgrabber, 4100, 598)
 
     return camgrabber, egrabbers, images_per_buffer
 
