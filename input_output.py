@@ -98,14 +98,6 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         help='Pixel level at which to trigger saving.'
                         )
 
-    parser.add_argument('-locthresh', '--localisation-threshold',
-                        dest='localisation_threshold',
-                        type=int,
-                        default=100,
-                        help='Pixel level at which to trigger particle'
-                        ' localisation in CustomLogic.'
-                        )
-
     parser.add_argument('-seq-length',
                         dest='seq_length',
                         type=int,
@@ -138,6 +130,14 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         action='store_true',
                         help='If used, turns on particle localisation'
                         ' in Euresys CustomLogic.')
+
+    parser.add_argument('-locthresh', '--localisation-threshold',
+                        dest='localisation_threshold',
+                        type=int,
+                        default=100,
+                        help='Pixel level at which to trigger particle'
+                        ' localisation in CustomLogic.'
+                        )
 
     args = parser.parse_args()
 
