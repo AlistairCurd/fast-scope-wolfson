@@ -47,7 +47,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
 
-    parser.add_argument('--fps',
+    parser.add_argument('-fps',
                         dest='fps',
                         type=float,
                         default=1000,
@@ -82,7 +82,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         ' Must be <= {}.'.format(max_height)
                         )
 
-    parser.add_argument('-b,', '--bit-depth',
+    parser.add_argument('-b', '--bit-depth',
                         dest='bit_depth',
                         type=int,
                         default=8,
@@ -91,14 +91,22 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         .format(allowed_bit_depths)
                         )
 
-    parser.add_argument('-t', '--trigger-level',
+    parser.add_argument('-trig', '--trigger-level',
                         dest='trigger_level',
                         type=int,
                         default=0,
                         help='Pixel level at which to trigger saving.'
                         )
 
-    parser.add_argument('--seq-length',
+    parser.add_argument('-locthresh', '--localisation-threshold',
+                        dest='localisation_threshold',
+                        type=int,
+                        default=100,
+                        help='Pixel level at which to trigger particle'
+                        ' localisation in CustomLogic.'
+                        )
+
+    parser.add_argument('-seq-length',
                         dest='seq_length',
                         type=int,
                         default=1e15,
@@ -106,7 +114,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
                         'for use with triggered sequences.'
                         )
 
-    parser.add_argument('--buffer-time',
+    parser.add_argument('-buffer-time',
                         dest='max_buffer_timing_ms',
                         type=float,
                         default=2.5,
@@ -125,7 +133,7 @@ def get_cmd_inputs(allowed_roi_widths=[128, 256, 384, 512, 640, 768, 896,
     # CustomLogic processing, rather than afterwards,
     # e.g. when running a CustomLogic process that combines
     # information from more than one line.
-    parser.add_argument('--localise',
+    parser.add_argument('-localise',
                         dest='localise',
                         action='store_true',
                         help='If used, turns on particle localisation'
