@@ -364,11 +364,11 @@ def create_and_configure_grabbers(grabber_settings):
     # CustomLogic firmware available for the Coaxlink Octo (area-scan).
     if grabber_settings.localise:
         # Use address 4100 (0x1004) for access to
-        # CustomLogic thresholding pipeline,
-        # modified for new functionality.
-        # 598 is hardcoded thresholding at pixel value 86, for now
-        # (0x256; 0x200 turns on the CustomLogic functionality).
-        set_customlogic_control(camgrabber, 4100, 598)
+        # CustomLogic thresholding pipeline, modified for new functionality.
+        # Control value 0x200 turns on the CustomLogic functionality,
+        # = 512 decimal, then add pixel threshold value
+        on_plus_thresh = 512 + grabber_settings.localisation_threshold
+        set_customlogic_control(camgrabber, 4100, on_plus_thresh)
         unscramble_phantom_S710_output(
             [camgrabber],
             grabber_settings.roi_width,
@@ -378,6 +378,7 @@ def create_and_configure_grabbers(grabber_settings):
             )
     # If not using CustomLogic process, turn it off
     # and use line re-ordering as standard for the camera
+    # (0x100 = 256 turns off the CustomLogic functionality).
     else:
         try:
             set_customlogic_control(camgrabber, 4100, 256)
